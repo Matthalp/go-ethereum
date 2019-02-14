@@ -61,7 +61,7 @@ const (
 	MaxTxSend                = 64  // Amount of transactions to be send per request
 	MaxTxStatus              = 256 // Amount of transactions to queried per request
 
-	disableClientRemovePeer = false
+	doNotDropPeer = func(id string) {}
 )
 
 func errResp(code errCode, format string, v ...interface{}) error {
@@ -171,13 +171,8 @@ func NewProtocolManager(
 		manager.ulc = newULC(ulcConfig)
 	}
 
-	removePeer := manager.removePeer
-	if disableClientRemovePeer {
-		removePeer = func(id string) {}
-	}
-
 	if lightSync {
-		manager.downloader = downloader.New(downloader.LightSync, chainDb, manager.eventMux, nil, blockchain, removePeer)
+		manager.downloader = downloader.New(downloader.LightSync, chainDb, manager.eventMux, nil, blockchain, doNotDropPeer)
 		manager.peers.notify((*downloaderPeerNotify)(manager))
 		manager.fetcher = newLightFetcher(manager)
 	}
