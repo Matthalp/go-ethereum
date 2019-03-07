@@ -47,11 +47,10 @@ var defaultSnapshotOptions = &SnapshotOptions{1, 1}
 // The blockchain configuration is also copied over.
 //
 // More information on the snapshot format can be found at go/ethereum-bootstrap-sync-state.
-func CreatePrunedSnapshot(db ethdb.Database, chain *BlockChain, pivotDistance uint64, opts *SnapshotOptions) error {
+func CreatePrunedSnapshot(db ethdb.Database, chain *BlockChain, height, pivotDistance uint64, opts *SnapshotOptions) error {
 	if opts == nil {
 		opts = defaultSnapshotOptions
 	}
-	height := chain.CurrentBlock().NumberU64()
 	pivotNumber := subWithFloor(height, pivotDistance)
 
 	if err := rawdb.MigrateMetadata(db, chain.db); err != nil {
@@ -154,3 +153,4 @@ func subWithFloor(a, b uint64) uint64 {
 	}
 	return a - b
 }
+
