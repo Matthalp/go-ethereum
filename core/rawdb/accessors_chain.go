@@ -19,10 +19,12 @@ package rawdb
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -299,36 +301,96 @@ func ReadReceiptsRLP(db ethdb.Reader, hash common.Hash, number uint64) rlp.RawVa
 	return data
 }
 
-// ReadReceipts retrieves all the transaction receipts belonging to a block.
-func ReadReceipts(db ethdb.Reader, hash common.Hash, number uint64) types.Receipts {
+// ReadReceiptsWithoutMetadata retrieves all the transaction receipts belonging to a
+// block. While some receipt metadata fields may be populated there are no guarantees
+// that all of them will be valid, so they should not be used. Use ReadReceipts
+// instead if the metadata is needed.
+func ReadReceiptsWithoutMetadata(db ethdb.Reader, hash common.Hash, number uint64) types.Receipts {
 	// Retrieve the flattened receipt slice
 	data := ReadReceiptsRLP(db, hash, number)
 	if len(data) == 0 {
 		return nil
 	}
+
 	// Convert the receipts from their storage form to their internal representation
 	storageReceipts := []*types.ReceiptForStorage{}
 	if err := rlp.DecodeBytes(data, &storageReceipts); err != nil {
 		log.Error("Invalid receipt array RLP", "hash", hash, "err", err)
 		return nil
 	}
+
+	// Set metadata fields that are already present from storage.
+	prevCumulativeGasUsed := uint64(0)
 	receipts := make(types.Receipts, len(storageReceipts))
 	logIndex := uint(0)
-	for i, receipt := range storageReceipts {
-		// Assemble deriving fields for log.
+	for txIndex, storageReceipt := range storageReceipts {
+		receipt := (*types.Receipt)(storageReceipt)
+		receipt.BlockHash = hash
+		receipt.BlockNumber = big.NewInt(0).SetUint64(number)
+		receipt.TransactionIndex = uint(txIndex)
+		receipt.GasUsed = receipt.CumulativeGasUsed - prevCumulativeGasUsed
+
+		prevCumulativeGasUsed = receipt.CumulativeGasUsed
 		for _, log := range receipt.Logs {
+			// Attempt to set TxHash just in case it was read from a legacy stored receipt format.
 			log.TxHash = receipt.TxHash
 			log.BlockHash = hash
 			log.BlockNumber = number
-			log.TxIndex = uint(i)
+			log.TxIndex = uint(txIndex)
 			log.Index = logIndex
-			logIndex += 1
+			logIndex++
 		}
-		receipts[i] = (*types.Receipt)(receipt)
-		receipts[i].BlockHash = hash
-		receipts[i].BlockNumber = big.NewInt(0).SetUint64(number)
-		receipts[i].TransactionIndex = uint(i)
+
+		receipts[txIndex] = receipt
 	}
+
+	return receipts
+}
+
+// ReadReceipts retrieves all the transaction receipts belonging to a block, including
+// its correspoinding metadata fields. If it is unable to populate these metadata
+// fields then nil is returned.
+//
+// The current implementation populates these metadata fields by reading the receipts'
+// corresponding block body, so if the block body is not found it will return nil even
+// if the receipt itself is stored.
+func ReadReceipts(db ethdb.Reader, hash common.Hash, number uint64) types.Receipts {
+	receipts := ReadReceiptsWithoutMetadata(db, hash, number)
+	if receipts == nil {
+		return receipts
+	}
+
+	if receipts.AreMissingMetadata() {
+		// Retrieve the block body to populate missing fields for receipts and logs
+		body := ReadBody(db, hash, number)
+		if body == nil {
+			log.Error("Missing body but have receipt", "hash", hash, "number", number)
+			return nil
+		}
+
+		for txIndex, receipt := range receipts {
+			tx := body.Transactions[txIndex]
+			receipt.TxHash = tx.Hash()
+
+			// Compute the contract address for contract creation contracts.
+			if tx.To() == nil {
+				// Reading in the chain configuration can eventually be cached since it
+				// will be the same across each invocation.
+				genesisHash := ReadCanonicalHash(db, 0)
+				config := ReadChainConfig(db, genesisHash)
+				signer := types.MakeSigner(config, big.NewInt(int64(number)))
+				from, err := types.Sender(signer, tx)
+				if err != nil {
+					panic(fmt.Sprintf("Error calculating sender for transaction: %v", err))
+				}
+				receipt.ContractAddress = crypto.CreateAddress(from, tx.Nonce())
+			}
+			for _, log := range receipt.Logs {
+				log.TxHash = receipt.TxHash
+			}
+		}
+	}
+
 	return receipts
 }
 
