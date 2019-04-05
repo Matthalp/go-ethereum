@@ -67,6 +67,7 @@ type stateObject struct {
 	addrHash common.Hash // hash of ethereum address of the account
 	data     Account
 	db       *StateDB
+	version uint32
 
 	// DB error.
 	// State objects are used by the consensus core and VM which are
@@ -152,9 +153,9 @@ func (c *stateObject) touch() {
 func (c *stateObject) getTrie(db Database) Trie {
 	if c.trie == nil {
 		var err error
-		c.trie, err = db.OpenStorageTrie(c.addrHash, c.data.Root)
+		c.trie, err = db.OpenStorageTrie(c.addrHash, c.data.Root, c.version)
 		if err != nil {
-			c.trie, _ = db.OpenStorageTrie(c.addrHash, common.Hash{})
+			c.trie, _ = db.OpenStorageTrie(c.addrHash, common.Hash{}, c.version)
 			c.setError(fmt.Errorf("can't create storage trie: %v", err))
 		}
 	}

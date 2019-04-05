@@ -20,6 +20,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/turbotrie"
 	"math/big"
 	"strings"
 
@@ -170,8 +171,9 @@ func (t *StateTest) gasLimit(subtest StateSubtest) uint64 {
 }
 
 func MakePreState(db ethdb.Database, accounts core.GenesisAlloc) *state.StateDB {
-	sdb := state.NewDatabase(db)
-	statedb, _ := state.New(common.Hash{}, sdb)
+	sdb, _ := turbotrie.NewTurboTrieStateDB(db)
+	//statedb, _ := state.New(common.Hash{},0, sdb)
+	statedb, _ := state.New(common.Hash{},0, sdb)
 	for addr, a := range accounts {
 		statedb.SetCode(addr, a.Code)
 		statedb.SetNonce(addr, a.Nonce)
@@ -182,7 +184,7 @@ func MakePreState(db ethdb.Database, accounts core.GenesisAlloc) *state.StateDB 
 	}
 	// Commit and re-open to start with a clean state.
 	root, _ := statedb.Commit(false)
-	statedb, _ = state.New(root, sdb)
+	statedb, _ = state.New(root, 0, sdb)
 	return statedb
 }
 

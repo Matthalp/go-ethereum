@@ -40,14 +40,14 @@ type SecureTrie struct {
 	secKeyCacheOwner *SecureTrie // Pointer to self, replace the key cache on mismatch
 }
 
-// NewSecure creates a trie with an existing root node from a backing database
-// and optional intermediate in-memory node pool.
+// NewSecure creates a trie with an existing root Node from a backing database
+// and optional intermediate in-memory Node pool.
 //
 // If root is the zero hash or the sha3 hash of an empty string, the
 // trie is initially empty. Otherwise, New will panic if db is nil
-// and returns MissingNodeError if the root node cannot be found.
+// and returns MissingNodeError if the root Node cannot be found.
 //
-// Accessing the trie loads nodes from the database or node pool on demand.
+// Accessing the trie loads nodes from the database or Node pool on demand.
 // Loaded nodes are kept around until their 'cache generation' expires.
 // A new cache generation is created by each call to Commit.
 // cachelimit sets the number of past cache generations to keep.
@@ -74,7 +74,7 @@ func (t *SecureTrie) Get(key []byte) []byte {
 
 // TryGet returns the value for key stored in the trie.
 // The value bytes must not be modified by the caller.
-// If a node was not found in the database, a MissingNodeError is returned.
+// If a Node was not found in the database, a MissingNodeError is returned.
 func (t *SecureTrie) TryGet(key []byte) ([]byte, error) {
 	return t.trie.TryGet(t.hashKey(key))
 }
@@ -98,7 +98,7 @@ func (t *SecureTrie) Update(key, value []byte) {
 // The value bytes must not be modified by the caller while they are
 // stored in the trie.
 //
-// If a node was not found in the database, a MissingNodeError is returned.
+// If a Node was not found in the database, a MissingNodeError is returned.
 func (t *SecureTrie) TryUpdate(key, value []byte) error {
 	hk := t.hashKey(key)
 	err := t.trie.TryUpdate(hk, value)
@@ -117,7 +117,7 @@ func (t *SecureTrie) Delete(key []byte) {
 }
 
 // TryDelete removes any existing value for key from the trie.
-// If a node was not found in the database, a MissingNodeError is returned.
+// If a Node was not found in the database, a MissingNodeError is returned.
 func (t *SecureTrie) TryDelete(key []byte) error {
 	hk := t.hashKey(key)
 	delete(t.getSecKeyCache(), string(hk))
@@ -150,7 +150,7 @@ func (t *SecureTrie) Commit(onleaf LeafCallback) (root common.Hash, err error) {
 
 		t.secKeyCache = make(map[string][]byte)
 	}
-	// Commit the trie to its intermediate node database
+	// Commit the trie to its intermediate Node database
 	return t.trie.Commit(onleaf)
 }
 

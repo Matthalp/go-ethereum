@@ -814,7 +814,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				switch len(req.AccKey) {
 				case 0:
 					// No account key specified, open an account trie
-					trie, err = statedb.OpenTrie(header.Root)
+					trie, err = statedb.OpenTrie(header.Root, uint32(header.Number.Uint64()))
 					if trie == nil || err != nil {
 						p.Log().Warn("Failed to open storage trie for proof", "block", header.Number, "hash", header.Hash(), "root", header.Root, "err", err)
 						continue
@@ -826,7 +826,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 						p.Log().Warn("Failed to retrieve account for proof", "block", header.Number, "hash", header.Hash(), "account", common.BytesToHash(req.AccKey), "err", err)
 						continue
 					}
-					trie, err = statedb.OpenStorageTrie(common.BytesToHash(req.AccKey), account.Root)
+					trie, err = statedb.OpenStorageTrie(common.BytesToHash(req.AccKey), account.Root, uint32(header.Number.Uint64()))
 					if trie == nil || err != nil {
 						p.Log().Warn("Failed to open storage trie for proof", "block", header.Number, "hash", header.Hash(), "account", common.BytesToHash(req.AccKey), "root", account.Root, "err", err)
 						continue
@@ -897,7 +897,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 				switch len(req.AccKey) {
 				case 0:
 					// No account key specified, open an account trie
-					trie, err = statedb.OpenTrie(root)
+					trie, err = statedb.OpenTrie(root, uint32(header.Number.Uint64()))
 					if trie == nil || err != nil {
 						p.Log().Warn("Failed to open storage trie for proof", "block", header.Number, "hash", header.Hash(), "root", root, "err", err)
 						continue
@@ -909,7 +909,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 						p.Log().Warn("Failed to retrieve account for proof", "block", header.Number, "hash", header.Hash(), "account", common.BytesToHash(req.AccKey), "err", err)
 						continue
 					}
-					trie, err = statedb.OpenStorageTrie(common.BytesToHash(req.AccKey), account.Root)
+					trie, err = statedb.OpenStorageTrie(common.BytesToHash(req.AccKey), account.Root, uint32(header.Number.Uint64()))
 					if trie == nil || err != nil {
 						p.Log().Warn("Failed to open storage trie for proof", "block", header.Number, "hash", header.Hash(), "account", common.BytesToHash(req.AccKey), "root", account.Root, "err", err)
 						continue

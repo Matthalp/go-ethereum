@@ -30,7 +30,7 @@ import (
 )
 
 func NewState(ctx context.Context, head *types.Header, odr OdrBackend) *state.StateDB {
-	state, _ := state.New(head.Root, NewStateDatabase(ctx, head, odr))
+	state, _ := state.New(head.Root,0,  NewStateDatabase(ctx, head, odr))
 	return state
 }
 
@@ -44,11 +44,11 @@ type odrDatabase struct {
 	backend OdrBackend
 }
 
-func (db *odrDatabase) OpenTrie(root common.Hash) (state.Trie, error) {
+func (db *odrDatabase) OpenTrie(root common.Hash, verison uint32) (state.Trie, error) {
 	return &odrTrie{db: db, id: db.id}, nil
 }
 
-func (db *odrDatabase) OpenStorageTrie(addrHash, root common.Hash) (state.Trie, error) {
+func (db *odrDatabase) OpenStorageTrie(addrHash, root common.Hash, version uint32) (state.Trie, error) {
 	return &odrTrie{db: db, id: StorageTrieID(db.id, addrHash, root)}, nil
 }
 

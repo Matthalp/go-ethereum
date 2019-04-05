@@ -73,6 +73,10 @@ func (t *table) NewIteratorWithPrefix(prefix []byte) ethdb.Iterator {
 	return t.db.NewIteratorWithPrefix(append([]byte(t.prefix), prefix...))
 }
 
+func (t *table) NewIteratorForRange(start, limit []byte) ethdb.Iterator {
+	panic("Not implemented (yet?)")
+}
+
 // Stat returns a particular internal stat of the database.
 func (t *table) Stat(property string) (string, error) {
 	return t.db.Stat(property)

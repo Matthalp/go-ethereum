@@ -24,7 +24,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
 )
 
-// makeTestTrie create a sample test trie to test node-wise reconstruction.
+// makeTestTrie create a sample test trie to test Node-wise reconstruction.
 func makeTestTrie() (*Database, *Trie, map[string][]byte) {
 	// Create an empty trie
 	triedb := NewDatabase(memorydb.New())
@@ -120,7 +120,7 @@ func testIterativeSync(t *testing.T, batch int) {
 		for i, hash := range queue {
 			data, err := srcDb.Node(hash)
 			if err != nil {
-				t.Fatalf("failed to retrieve node data for %x: %v", hash, err)
+				t.Fatalf("failed to retrieve Node data for %x: %v", hash, err)
 			}
 			results[i] = SyncResult{hash, data}
 		}
@@ -154,7 +154,7 @@ func TestIterativeDelayedSync(t *testing.T) {
 		for i, hash := range queue[:len(results)] {
 			data, err := srcDb.Node(hash)
 			if err != nil {
-				t.Fatalf("failed to retrieve node data for %x: %v", hash, err)
+				t.Fatalf("failed to retrieve Node data for %x: %v", hash, err)
 			}
 			results[i] = SyncResult{hash, data}
 		}
@@ -195,7 +195,7 @@ func testIterativeRandomSync(t *testing.T, batch int) {
 		for hash := range queue {
 			data, err := srcDb.Node(hash)
 			if err != nil {
-				t.Fatalf("failed to retrieve node data for %x: %v", hash, err)
+				t.Fatalf("failed to retrieve Node data for %x: %v", hash, err)
 			}
 			results = append(results, SyncResult{hash, data})
 		}
@@ -236,7 +236,7 @@ func TestIterativeRandomDelayedSync(t *testing.T) {
 		for hash := range queue {
 			data, err := srcDb.Node(hash)
 			if err != nil {
-				t.Fatalf("failed to retrieve node data for %x: %v", hash, err)
+				t.Fatalf("failed to retrieve Node data for %x: %v", hash, err)
 			}
 			results = append(results, SyncResult{hash, data})
 
@@ -281,7 +281,7 @@ func TestDuplicateAvoidanceSync(t *testing.T) {
 		for i, hash := range queue {
 			data, err := srcDb.Node(hash)
 			if err != nil {
-				t.Fatalf("failed to retrieve node data for %x: %v", hash, err)
+				t.Fatalf("failed to retrieve Node data for %x: %v", hash, err)
 			}
 			if _, ok := requested[hash]; ok {
 				t.Errorf("hash %x already requested once", hash)
@@ -321,7 +321,7 @@ func TestIncompleteSync(t *testing.T) {
 		for i, hash := range queue {
 			data, err := srcDb.Node(hash)
 			if err != nil {
-				t.Fatalf("failed to retrieve node data for %x: %v", hash, err)
+				t.Fatalf("failed to retrieve Node data for %x: %v", hash, err)
 			}
 			results[i] = SyncResult{hash, data}
 		}
@@ -344,7 +344,7 @@ func TestIncompleteSync(t *testing.T) {
 		// Fetch the next batch to retrieve
 		queue = append(queue[:0], sched.Missing(1)...)
 	}
-	// Sanity check that removing any node from the database is detected
+	// Sanity check that removing any Node from the database is detected
 	for _, node := range added[1:] {
 		key := node.Bytes()
 		value, _ := diskdb.Get(key)

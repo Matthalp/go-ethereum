@@ -184,6 +184,10 @@ func (db *Database) NewIteratorWithPrefix(prefix []byte) ethdb.Iterator {
 	return db.db.NewIterator(util.BytesPrefix(prefix), nil)
 }
 
+func (db *Database) NewIteratorForRange(start, limit []byte) ethdb.Iterator {
+	return db.db.NewIterator( &util.Range{start, limit}, nil)
+}
+
 // Stat returns a particular internal stat of the database.
 func (db *Database) Stat(property string) (string, error) {
 	return db.db.GetProperty(property)

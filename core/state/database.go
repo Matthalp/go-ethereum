@@ -33,10 +33,10 @@ const (
 // Database wraps access to tries and contract code.
 type Database interface {
 	// OpenTrie opens the main account trie.
-	OpenTrie(root common.Hash) (Trie, error)
+	OpenTrie(root common.Hash, version uint32) (Trie, error)
 
 	// OpenStorageTrie opens the storage trie of an account.
-	OpenStorageTrie(addrHash, root common.Hash) (Trie, error)
+	OpenStorageTrie(addrHash, root common.Hash, version uint32) (Trie, error)
 
 	// CopyTrie returns an independent copy of the given trie.
 	CopyTrie(Trie) Trie
@@ -120,12 +120,12 @@ type cachingDB struct {
 }
 
 // OpenTrie opens the main account trie at a specific root hash.
-func (db *cachingDB) OpenTrie(root common.Hash) (Trie, error) {
+func (db *cachingDB) OpenTrie(root common.Hash, version uint32) (Trie, error) {
 	return trie.NewSecure(root, db.db)
 }
 
 // OpenStorageTrie opens the storage trie of an account.
-func (db *cachingDB) OpenStorageTrie(addrHash, root common.Hash) (Trie, error) {
+func (db *cachingDB) OpenStorageTrie(addrHash, root common.Hash, version uint32) (Trie, error) {
 	return trie.NewSecure(root, db.db)
 }
 

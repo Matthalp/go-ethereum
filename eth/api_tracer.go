@@ -155,7 +155,7 @@ func (api *PrivateDebugAPI) traceChain(ctx context.Context, start, end *types.Bl
 			return nil, fmt.Errorf("parent block #%d not found", number-1)
 		}
 	}
-	statedb, err := state.New(start.Root(), database)
+	statedb, err := state.New(start.Root(), uint32(start.NumberU64()), database)
 	if err != nil {
 		// If the starting state is missing, allow some number of blocks to be reexecuted
 		reexec := defaultTraceReexec
@@ -168,7 +168,7 @@ func (api *PrivateDebugAPI) traceChain(ctx context.Context, start, end *types.Bl
 			if start == nil {
 				break
 			}
-			if statedb, err = state.New(start.Root(), database); err == nil {
+			if statedb, err = state.New(start.Root(),  uint32(start.NumberU64()), database); err == nil {
 				break
 			}
 		}
@@ -300,7 +300,7 @@ func (api *PrivateDebugAPI) traceChain(ctx context.Context, start, end *types.Bl
 				failed = err
 				break
 			}
-			if err := statedb.Reset(root); err != nil {
+			if err := statedb.Reset(root, uint32(block.NumberU64())); err != nil {
 				failed = err
 				break
 			}
@@ -635,7 +635,7 @@ func containsTx(block *types.Block, hash common.Hash) bool {
 // attempted to be reexecuted to generate the desired state.
 func (api *PrivateDebugAPI) computeStateDB(block *types.Block, reexec uint64) (*state.StateDB, error) {
 	// If we have the state fully available, use that
-	statedb, err := api.eth.blockchain.StateAt(block.Root())
+	statedb, err := api.eth.blockchain.StateAt(block.Root(), uint32(block.NumberU64()))
 	if err == nil {
 		return statedb, nil
 	}
@@ -648,7 +648,7 @@ func (api *PrivateDebugAPI) computeStateDB(block *types.Block, reexec uint64) (*
 		if block == nil {
 			break
 		}
-		if statedb, err = state.New(block.Root(), database); err == nil {
+		if statedb, err = state.New(block.Root(), uint32(block.NumberU64()), database); err == nil {
 			break
 		}
 	}
@@ -685,7 +685,7 @@ func (api *PrivateDebugAPI) computeStateDB(block *types.Block, reexec uint64) (*
 		if err != nil {
 			return nil, err
 		}
-		if err := statedb.Reset(root); err != nil {
+		if err := statedb.Reset(root, uint32(block.Number().Uint64())); err != nil {
 			return nil, fmt.Errorf("state reset after block %d failed: %v", block.NumberU64(), err)
 		}
 		database.TrieDB().Reference(root, common.Hash{})

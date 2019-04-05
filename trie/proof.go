@@ -29,19 +29,19 @@ import (
 
 // Prove constructs a merkle proof for key. The result contains all encoded nodes
 // on the path to the value at key. The value itself is also included in the last
-// node and can be retrieved by verifying the proof.
+// Node and can be retrieved by verifying the proof.
 //
 // If the trie does not contain a value for key, the returned proof contains all
-// nodes of the longest existing prefix of the key (at least the root node), ending
-// with the node that proves the absence of the key.
+// nodes of the longest existing prefix of the key (at least the root Node), ending
+// with the Node that proves the absence of the key.
 func (t *Trie) Prove(key []byte, fromLevel uint, proofDb ethdb.Writer) error {
 	// Collect all nodes on the path to key.
 	key = keybytesToHex(key)
-	var nodes []node
+	var nodes []Node
 	tn := t.root
 	for len(key) > 0 && tn != nil {
 		switch n := tn.(type) {
-		case *shortNode:
+		case *ShortNode:
 			if len(key) < len(n.Key) || !bytes.Equal(n.Key, key[:len(n.Key)]) {
 				// The trie doesn't contain the key.
 				tn = nil
@@ -50,11 +50,11 @@ func (t *Trie) Prove(key []byte, fromLevel uint, proofDb ethdb.Writer) error {
 				key = key[len(n.Key):]
 			}
 			nodes = append(nodes, n)
-		case *fullNode:
+		case *FullNode:
 			tn = n.Children[key[0]]
 			key = key[1:]
 			nodes = append(nodes, n)
-		case hashNode:
+		case HashNode:
 			var err error
 			tn, err = t.resolveHash(n, nil)
 			if err != nil {
@@ -62,7 +62,7 @@ func (t *Trie) Prove(key []byte, fromLevel uint, proofDb ethdb.Writer) error {
 				return err
 			}
 		default:
-			panic(fmt.Sprintf("%T: invalid node: %v", tn, tn))
+			panic(fmt.Sprintf("%T: invalid Node: %v", tn, tn))
 		}
 	}
 	hasher := newHasher(nil)
@@ -73,9 +73,9 @@ func (t *Trie) Prove(key []byte, fromLevel uint, proofDb ethdb.Writer) error {
 		// if encoding doesn't work and we're not writing to any database.
 		n, _, _ = hasher.hashChildren(n, nil)
 		hn, _ := hasher.store(n, nil, false)
-		if hash, ok := hn.(hashNode); ok || i == 0 {
-			// If the node's database encoding is a hash (or is the
-			// root node), it becomes a proof element.
+		if hash, ok := hn.(HashNode); ok || i == 0 {
+			// If the Node's database encoding is a hash (or is the
+			// root Node), it becomes a proof element.
 			if fromLevel > 0 {
 				fromLevel--
 			} else {
@@ -92,11 +92,11 @@ func (t *Trie) Prove(key []byte, fromLevel uint, proofDb ethdb.Writer) error {
 
 // Prove constructs a merkle proof for key. The result contains all encoded nodes
 // on the path to the value at key. The value itself is also included in the last
-// node and can be retrieved by verifying the proof.
+// Node and can be retrieved by verifying the proof.
 //
 // If the trie does not contain a value for key, the returned proof contains all
-// nodes of the longest existing prefix of the key (at least the root node), ending
-// with the node that proves the absence of the key.
+// nodes of the longest existing prefix of the key (at least the root Node), ending
+// with the Node that proves the absence of the key.
 func (t *SecureTrie) Prove(key []byte, fromLevel uint, proofDb ethdb.Writer) error {
 	return t.trie.Prove(key, fromLevel, proofDb)
 }
@@ -110,46 +110,46 @@ func VerifyProof(rootHash common.Hash, key []byte, proofDb ethdb.Reader) (value 
 	for i := 0; ; i++ {
 		buf, _ := proofDb.Get(wantHash[:])
 		if buf == nil {
-			return nil, i, fmt.Errorf("proof node %d (hash %064x) missing", i, wantHash)
+			return nil, i, fmt.Errorf("proof Node %d (hash %064x) missing", i, wantHash)
 		}
 		n, err := decodeNode(wantHash[:], buf)
 		if err != nil {
-			return nil, i, fmt.Errorf("bad proof node %d: %v", i, err)
+			return nil, i, fmt.Errorf("bad proof Node %d: %v", i, err)
 		}
 		keyrest, cld := get(n, key)
 		switch cld := cld.(type) {
 		case nil:
 			// The trie doesn't contain the key.
 			return nil, i, nil
-		case hashNode:
+		case HashNode:
 			key = keyrest
 			copy(wantHash[:], cld)
-		case valueNode:
+		case ValueNode:
 			return cld, i + 1, nil
 		}
 	}
 }
 
-func get(tn node, key []byte) ([]byte, node) {
+func get(tn Node, key []byte) ([]byte, Node) {
 	for {
 		switch n := tn.(type) {
-		case *shortNode:
+		case *ShortNode:
 			if len(key) < len(n.Key) || !bytes.Equal(n.Key, key[:len(n.Key)]) {
 				return nil, nil
 			}
 			tn = n.Val
 			key = key[len(n.Key):]
-		case *fullNode:
+		case *FullNode:
 			tn = n.Children[key[0]]
 			key = key[1:]
-		case hashNode:
+		case HashNode:
 			return key, n
 		case nil:
 			return key, nil
-		case valueNode:
+		case ValueNode:
 			return nil, n
 		default:
-			panic(fmt.Sprintf("%T: invalid node: %v", tn, tn))
+			panic(fmt.Sprintf("%T: invalid Node: %v", tn, tn))
 		}
 	}
 }

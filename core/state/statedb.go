@@ -65,6 +65,7 @@ func (n *proofList) Delete(key []byte) error {
 type StateDB struct {
 	db   Database
 	trie Trie
+	version uint32
 
 	// This map holds 'live' objects, which will get modified while processing a state transition.
 	stateObjects      map[common.Address]*stateObject
@@ -105,8 +106,8 @@ type StateDB struct {
 }
 
 // Create a new state from a given trie.
-func New(root common.Hash, db Database) (*StateDB, error) {
-	tr, err := db.OpenTrie(root)
+func New(root common.Hash, version uint32, db Database) (*StateDB, error) {
+	tr, err := db.OpenTrie(root, version)
 	if err != nil {
 		return nil, err
 	}
@@ -118,6 +119,7 @@ func New(root common.Hash, db Database) (*StateDB, error) {
 		logs:              make(map[common.Hash][]*types.Log),
 		preimages:         make(map[common.Hash][]byte),
 		journal:           newJournal(),
+		version: version,
 	}, nil
 }
 
@@ -134,8 +136,8 @@ func (self *StateDB) Error() error {
 
 // Reset clears out all ephemeral state objects from the state db, but keeps
 // the underlying state trie to avoid reloading data for the next operations.
-func (self *StateDB) Reset(root common.Hash) error {
-	tr, err := self.db.OpenTrie(root)
+func (self *StateDB) Reset(root common.Hash, version uint32) error {
+	tr, err := self.db.OpenTrie(root, version)
 	if err != nil {
 		return err
 	}

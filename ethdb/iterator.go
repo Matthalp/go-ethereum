@@ -47,6 +47,7 @@ type Iterator interface {
 	// Release releases associated resources. Release should always succeed and can
 	// be called multiple times without causing error.
 	Release()
+	Last() bool
 }
 
 // Iteratee wraps the NewIterator methods of a backing data store.
@@ -58,4 +59,6 @@ type Iteratee interface {
 	// NewIteratorWithPrefix creates a binary-alphabetical iterator over a subset
 	// of database content with a particular key prefix.
 	NewIteratorWithPrefix(prefix []byte) Iterator
+
+	NewIteratorForRange(start, limit []byte) Iterator
 }

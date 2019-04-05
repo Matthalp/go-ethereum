@@ -212,7 +212,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 		return nil, nil
 	}
 	for i := 0; i < n; i++ {
-		statedb, err := state.New(parent.Root(), state.NewDatabase(db))
+		statedb, err := state.New(parent.Root(), uint32(parent.NumberU64()), state.NewDatabase(db))
 		if err != nil {
 			panic(err)
 		}

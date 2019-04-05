@@ -18,7 +18,9 @@
 package memorydb
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"sort"
 	"strings"
 	"sync"
@@ -163,6 +165,37 @@ func (db *Database) NewIteratorWithPrefix(prefix []byte) ethdb.Iterator {
 	}
 }
 
+func (db *Database) NewIteratorForRange(start, limit []byte) ethdb.Iterator {
+	db.lock.RLock()
+	defer db.lock.RUnlock()
+
+	// TODO: Remove
+	if len(start) + 1 != len(limit) {
+		panic(fmt.Sprintf("len(start) + 1 (%d) != len(limit) (%d)", len(start) + 1, len(limit)))
+	}
+
+	var (
+		keys   = make([]string, 0, len(db.db))
+		values = make([][]byte, 0, len(db.db))
+	)
+	// Collect the keys from the memory database corresponding to the given range
+	for key := range db.db {
+		k := []byte(key)
+		if len(k) == len(start) && bytes.Compare(k, start) >= 0 && bytes.Compare(k, limit) < 0 {
+			keys = append(keys, key)
+		}
+	}
+	// Sort the items and retrieve the associated values
+	sort.Strings(keys)
+	for _, key := range keys {
+		values = append(values, db.db[key])
+	}
+	return &iterator{
+		keys:   keys,
+		values: values,
+	}
+}
+
 // Stat returns a particular internal stat of the database.
 func (db *Database) Stat(property string) (string, error) {
 	return "", errors.New("unknown property")
@@ -277,6 +310,20 @@ func (it *iterator) Next() bool {
 	if len(it.keys) > 0 {
 		it.keys = it.keys[1:]
 		it.values = it.values[1:]
+	}
+	return len(it.keys) > 0
+}
+
+func (it *iterator) Last() bool {
+	// If the iterator was not yet initialized, do it now
+	if !it.inited {
+		it.inited = true
+	}
+
+	// Iterator already initialize, advance it
+	if len(it.keys) > 0 {
+		it.keys = it.keys[len(it.keys)-1:]
+		it.values = it.values[len(it.values)-1:]
 	}
 	return len(it.keys) > 0
 }
