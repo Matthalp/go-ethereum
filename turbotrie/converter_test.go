@@ -3,6 +3,7 @@ package turbotrie
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/turbotrie/internal/storage"
 	"os"
@@ -37,7 +38,10 @@ func TestFoo(t *testing.T) {
 	}
 	defer db.Close()
 
-	MigrateLegacyTrieToTurboTrie(legacyTrie, storage.NewCollection(db), 0)
+	onLeaf := func(key, value []byte) {
+		fmt.Println("Key", hex.EncodeToString(key), "Value", hex.EncodeToString(value))
+	}
+	MigrateLegacyTrieToTurboTrie(legacyTrie, storage.NewCollection(db), 0, onLeaf)
 
 	//it := db.NewIterator()
 	//defer it.Release()

@@ -52,6 +52,15 @@ func decodeNode(b []byte, version uint32) (node.VersionedNode, []byte, error) {
 
 		return legacyFullNode, remaining, err
 	default:
+		_, enc, remaining, _ := rlp.Split(enc)
+		fmt.Println("enc[0]", hex.EncodeToString(enc))
+		_, enc, remaining, _ = rlp.Split(remaining)
+		fmt.Println("enc[1]", hex.EncodeToString(enc))
+		_, enc, remaining, _ = rlp.Split(remaining)
+		fmt.Println("enc[2]", hex.EncodeToString(enc))
+		fmt.Println("enc[3]", hex.EncodeToString(remaining))
+
+
 		return nil, nil, fmt.Errorf("Could not decode node %s", hex.EncodeToString(b))
 	}
 }
@@ -243,7 +252,7 @@ func decodeChildren(b []byte, livingChildrenMask ChildrenMask, leafChildrenMask 
 }
 
 func decodeChildrenMask(b []byte) (ChildrenMask, []byte, error) {
-	kind, enc, remaining, err := rlp.Split(b)
+	_, enc, remaining, err := rlp.Split(b)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -251,9 +260,9 @@ func decodeChildrenMask(b []byte) (ChildrenMask, []byte, error) {
 	var mask uint16
 	if len(enc) == 0 {
 		mask = 0
-	} else if kind == rlp.Byte {
+	} else if len(enc) == 1 {
 		mask = uint16(enc[0])
-	} else if len(enc) > 0 {
+	} else {
 		mask = binary.BigEndian.Uint16(enc)
 	}
 

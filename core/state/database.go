@@ -17,12 +17,13 @@
 package state
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/trie"
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/hashicorp/golang-lru"
 )
 
 const (
@@ -145,6 +146,7 @@ func (db *cachingDB) ContractCode(addrHash, codeHash common.Hash) ([]byte, error
 	if err == nil {
 		db.codeSizeCache.Add(codeHash, len(code))
 	}
+	fmt.Errorf("ContractCode (CACHED)", "hash", codeHash.String(), "code", hex.EncodeToString(code), "err", err)
 	return code, err
 }
 

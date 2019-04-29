@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/turbotrie"
 	"math/big"
 	"strings"
 
@@ -230,7 +231,9 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	if db == nil {
 		db = rawdb.NewMemoryDatabase()
 	}
-	statedb, _ := state.New(common.Hash{}, 0, state.NewDatabase(db))
+	sdb, _ := turbotrie.NewTurboTrieStateDB(db)
+	statedb, _ := state.New(common.Hash{}, 0, sdb)
+
 	for addr, account := range g.Alloc {
 		statedb.AddBalance(addr, account.Balance)
 		statedb.SetCode(addr, account.Code)

@@ -29,7 +29,7 @@ import (
 )
 
 func TestState(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	st := new(testMatcher)
 	// Long tests:
@@ -53,6 +53,8 @@ func TestState(t *testing.T) {
 	st.fails(`^stRevertTest/RevertPrecompiledTouch(_storage)?\.json/ConstantinopleFix/0`, "bug in test")
 	st.fails(`^stRevertTest/RevertPrecompiledTouch(_storage)?\.json/ConstantinopleFix/3`, "bug in test")
 
+	//st.whitelist("stSystemOperationsTest/suicideCaller?.json")
+
 	st.walk(t, stateTestDir, func(t *testing.T, name string, test *StateTest) {
 		for _, subtest := range test.Subtests() {
 			subtest := subtest
@@ -69,7 +71,7 @@ func TestState(t *testing.T) {
 }
 
 // Transactions with gasLimit above this value will not get a VM trace on failure.
-const traceErrorLimit = 400000
+const traceErrorLimit = 1500000
 
 // The VM config for state tests that accepts --vm.* command line arguments.
 var testVMConfig = func() vm.Config {

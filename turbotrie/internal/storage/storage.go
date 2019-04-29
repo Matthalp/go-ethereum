@@ -52,10 +52,36 @@ func (c *Collection) delete(key []byte) error {
 
 // iteratorForRange returns an interator that spans the start and end
 // Collection keys inclusively.
-func (s *Collection) iteratorForRange(start, end Key) ethdb.Iterator {
+func (s *Collection) iteratorForRange(start, end Key) *iterator {
 	// Append a zero so that end will be included in the range.
 	limit := append(end, 0)
-	return s.db.NewIteratorForRange(s.maybePrefix(start), s.maybePrefix(limit))
+	it := s.db.NewIteratorForRange(s.maybePrefix(start), s.maybePrefix(limit))
+	return &iterator{s.prefix, it}
+}
+
+type iterator struct {
+	prefix []byte
+	it ethdb.Iterator
+}
+
+func (i *iterator) Next() bool {
+	return i.it.Next()
+}
+
+func (i *iterator) Last() bool {
+	return i.it.Last()
+}
+
+func (i *iterator) Value() []byte {
+	return i.it.Value()
+}
+
+func (i *iterator) Key() []byte {
+	return i.it.Key()[len(i.prefix):]
+}
+
+func (i *iterator) Release() {
+	i.it.Release()
 }
 
 func (c *Collection) maybePrefix(key []byte) []byte {

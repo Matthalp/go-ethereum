@@ -12,12 +12,13 @@ import (
 const doVisitChildren = true
 var noExtension *trie.ShortNode
 
+type OnLeafCallback func(key, value []byte)
 
-func MigrateLegacyTrieToTurboTrie(legacy *trie.Trie, collection *storage.Collection, version uint32) error {
+func MigrateLegacyTrieToTurboTrie(legacy *trie.Trie, collection *storage.Collection, version uint32, onLeaf OnLeafCallback) error {
 	it := legacy.NodeIterator(nil)
 	finalizer := storage.NewFinalizer(collection)
 
-	migration := &migration{it, finalizer}
+	migration := &migration{it, finalizer, onLeaf}
 	if err := migration.migrateRootNode(); err != nil {
 		return err
 	}
@@ -29,6 +30,7 @@ func MigrateLegacyTrieToTurboTrie(legacy *trie.Trie, collection *storage.Collect
 type migration struct {
 	legacyIt trie.NodeIterator
 	finalizer *storage.Finalizer
+	onLeaf func(key, value []byte)
 }
 
 func (m *migration) migrateRootNode() error {
@@ -84,6 +86,9 @@ func (m *migration) nextNode() (encoding.Hex, node.VersionedNode, error) {
 				return nil, nil, err
 			}
 
+			if m.onLeaf != nil {
+				m.onLeaf(encoding.Hex(path).Keybytes(), converted.Value)
+			}
 			return path, converted, nil
 		}
 

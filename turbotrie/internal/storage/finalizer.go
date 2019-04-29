@@ -184,9 +184,13 @@ func canonicalFullNodeIntegrityNodeAndRLP(full *integrity.Full, key encoding.Hex
 
 func (f *Finalizer) finalizeFullNodeChildren(full *node.Full, path encoding.Hex, shouldStore, forceHash bool) (*integrity.Full, error) {
 	var integrityChildren [numChildrenInRefFullNode]integrity.Node
-	pathToChildren := append(path, full.Key...)
+	pathToChildren := make([]byte, len(path) + len(full.Key))
+	copy(pathToChildren, path)
+	copy(pathToChildren[len(path):], full.Key)
 	for i, child := range full.Children {
-		pathToChild := append(pathToChildren, byte(i))
+		pathToChild := make([]byte, len(pathToChildren) + 1)
+		copy(pathToChild, pathToChildren)
+		pathToChild[len(pathToChildren)] = byte(i)
 		integrityChild, err := f.finalize(child, pathToChild, shouldStore, doNotForceHash)
 		if err != nil {
 			return nil, err

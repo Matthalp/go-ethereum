@@ -350,6 +350,7 @@ func (self *stateObject) Code(db Database) []byte {
 	}
 	code, err := db.ContractCode(self.addrHash, common.BytesToHash(self.CodeHash()))
 	if err != nil {
+		db.ContractCode(self.addrHash, common.BytesToHash(self.CodeHash()))
 		self.setError(fmt.Errorf("can't load code hash %x: %v", self.CodeHash(), err))
 	}
 	self.code = code

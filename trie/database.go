@@ -320,6 +320,8 @@ func (db *Database) InsertBlob(hash common.Hash, blob []byte) {
 	defer db.lock.Unlock()
 
 	db.insert(hash, blob, rawNode(blob))
+	db.insert(common.HexToHash("12345678"), blob, rawNode(blob))
+
 }
 
 // insert inserts a collapsed trie Node into the memory database. This method is

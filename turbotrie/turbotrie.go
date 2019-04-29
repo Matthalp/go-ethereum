@@ -106,10 +106,25 @@ func NewEmptyTurboTrie(db ethdb.Database) *TurboTrie {
 	}
 }
 
+func NewEmptyPrefixedTurboTrie(prefix []byte, db ethdb.Database) *TurboTrie {
+	collection := storage.NewPrefixedCollection(prefix, db)
+	finalizer := storage.NewFinalizer(collection)
+
+	return &TurboTrie{
+		root:      node.NewNil(),
+		finalizer: finalizer,
+		storage:   collection,
+	}
+}
+
 // NewTurboTrie loads a pre-existing, stored TurboTrie identified within the
 // specified database db with its Hash and Version.
 func NewTurboTrie(db ethdb.Database, hash common.Hash, version uint32) (*TurboTrie, error) {
-	trie := NewEmptyTurboTrie(db)
+	return NewPrefixedTurboTrie(noPrefix, db, hash, version)
+}
+
+func NewPrefixedTurboTrie(prefix []byte, db ethdb.Database, hash common.Hash, version uint32) (*TurboTrie, error) {
+	trie := NewEmptyPrefixedTurboTrie(prefix, db)
 
 	// Ensure future trie mutations do not conflict with the loaded Version.
 	trie.version = version + 1
@@ -256,7 +271,9 @@ func (t *TurboTrie) put(n node.VersionedNode, path, key encoding.Hex, value []by
 			return nil, false, err
 		}
 
-		fullPath := append(path, key...)
+		fullPath := make([]byte, len(path) + len(key))
+		copy(fullPath, path)
+		copy(fullPath[len(path):], key)
 		if !n.DeletedKeys.Contains(fullPath) {
 			nodeWithDeleteKeys := &node.WithDeletedKeys{Node: newNode, DeletedKeys: n.DeletedKeys}
 			return nodeWithDeleteKeys, true, nil
@@ -296,7 +313,6 @@ func (t *TurboTrie) replaceChild(full *node.Full, newChild node.VersionedNode, n
 			copy(newOffset, full.Key)
 			newOffset[len(full.Key)] = byte(index)
 			copy(newOffset[len(full.Key)+1:], remainingChild.Key)
-			//newOffset := append(append(full.Key, byte(index)), remainingChild.Key...)
 			return remainingChild.ReplaceKey(newOffset, t.version), nil
 		}
 
@@ -311,7 +327,10 @@ func (t *TurboTrie) replaceChild(full *node.Full, newChild node.VersionedNode, n
 			return c.ReplaceKey(newOffset, t.version), nil
 		case *node.Stored:
 			if c.IsLeaf {
-				loadedNode, err := t.storage.LoadLeafNodeWithPrefixAndVersion(append(path, byte(index)), c.Version())
+				temp := make([]byte, len(path) + 1)
+				copy(temp, path)
+				temp[len(path)] = byte(index)
+				loadedNode, err := t.storage.LoadLeafNodeWithPrefixAndVersion(temp, c.Version())
 				if err != nil {
 					return nil, err
 				}
@@ -322,7 +341,9 @@ func (t *TurboTrie) replaceChild(full *node.Full, newChild node.VersionedNode, n
 				copy(newOffset[len(full.Key)+1:], loadedNode.Key)
 				return loadedNode.ReplaceKey(newOffset, t.version), nil
 			} else {
-				childPath := append(path, byte(index))
+				childPath := make([]byte, len(path) + 1)
+				copy(childPath, path)
+				childPath[len(path)] = byte(index)
 				loadedNode, err := t.storage.LoadNode(childPath, c.Version())
 				if err != nil {
 					return nil, err
@@ -379,7 +400,10 @@ func (t *TurboTrie) remove(n node.VersionedNode, path, key encoding.Hex) (node.V
 		}
 
 		deletedKeys := make(node.Keys)
-		deletedKeys[string(append(path, key...))] = t.version
+		dk := make([]byte, len(path) + len(key))
+		copy(dk, path)
+		copy(dk[len(path):], key)
+		deletedKeys[string(dk)] = t.version
 		return node.NewNil(), true, deletedKeys, nil
 	case *node.Full:
 		if !n.MatchesKey(key) {
@@ -387,7 +411,10 @@ func (t *TurboTrie) remove(n node.VersionedNode, path, key encoding.Hex) (node.V
 		}
 
 		index := key[len(n.Key)]
-		newChild, replaced, deletedKeys, err := t.remove(n.Children[index], append(path, key[:len(n.Key)+1]...), key[len(n.Key)+1:])
+		partial := make([]byte, len(path) + len(n.Key) + 1)
+		copy(partial, path)
+		copy(partial[len(path):], key[:len(n.Key)+1])
+		newChild, replaced, deletedKeys, err := t.remove(n.Children[index], partial, key[len(n.Key)+1:])
 		if err != nil || !replaced {
 			return nil, replaced, nil, err
 		}
@@ -404,7 +431,10 @@ func (t *TurboTrie) remove(n node.VersionedNode, path, key encoding.Hex) (node.V
 		nodeWithDeleteKeys := &node.WithDeletedKeys{Node: newNode, DeletedKeys: deletedKeys}
 		return nodeWithDeleteKeys, true, nil, nil
 	case *node.WithDeletedKeys:
-		if n.DeletedKeys.Contains(append(path, key...)) {
+		dk := make([]byte, len(path) + len(key))
+		copy(dk, path)
+		copy(dk[len(path):], key)
+		if n.DeletedKeys.Contains(dk) {
 			return nil, false, nil, nil
 		}
 
@@ -468,7 +498,6 @@ func (t *TurboTrie) Hash() (common.Hash, error) {
 	if err != nil {
 		return common.Hash{}, err
 	}
-
 	return hash, nil
 }
 
