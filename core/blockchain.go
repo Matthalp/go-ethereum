@@ -20,6 +20,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/ludicroustrie"
 	"io"
 	"math/big"
 	mrand "math/rand"
@@ -177,7 +178,7 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 		cacheConfig:    cacheConfig,
 		db:             db,
 		triegc:         prque.New(nil),
-		stateCache:     state.NewDatabaseWithCache(db, cacheConfig.TrieCleanLimit),
+		stateCache:     ludicroustrie.NewLudicrousTrieStateDB(db),
 		quit:           make(chan struct{}),
 		shouldPreserve: shouldPreserve,
 		bodyCache:      bodyCache,
@@ -600,12 +601,8 @@ func (bc *BlockChain) HasFastBlock(hash common.Hash, number uint64) bool {
 }
 
 // HasState checks if state trie is fully present in the database or not.
-func (bc *BlockChain) HasState(hash common.Hash) bool {
-	number := rawdb.ReadHeaderNumber(bc.db, hash)
-	if number == nil {
-		return false
-	}
-	_, err := bc.stateCache.OpenTrie(hash, uint32(*number))
+func (bc *BlockChain) HasState(hash common.Hash, number uint64) bool {
+	_, err := bc.stateCache.OpenTrie(hash, uint32(number))
 	return err == nil
 }
 
@@ -617,7 +614,7 @@ func (bc *BlockChain) HasBlockAndState(hash common.Hash, number uint64) bool {
 	if block == nil {
 		return false
 	}
-	return bc.HasState(block.Root())
+	return bc.HasState(block.Root(), block.NumberU64())
 }
 
 // GetBlock retrieves a block from the database by hash and number,
@@ -1415,7 +1412,7 @@ func (bc *BlockChain) insertSidechain(block *types.Block, it *insertIterator) (i
 		numbers []uint64
 	)
 	parent := it.previous()
-	for parent != nil && !bc.HasState(parent.Root) {
+	for parent != nil && !bc.HasState(parent.Root, parent.Number.Uint64()) {
 		hashes = append(hashes, parent.Hash())
 		numbers = append(numbers, parent.Number.Uint64())
 

@@ -83,6 +83,11 @@ func CountValues(b []byte) (int, error) {
 	return i, nil
 }
 
+func ReadKind(b []byte) (Kind, error) {
+	kind, _, _, err := readKind(b)
+	return kind, err
+}
+
 func readKind(buf []byte) (k Kind, tagsize, contentsize uint64, err error) {
 	if len(buf) == 0 {
 		return 0, 0, 0, io.ErrUnexpectedEOF

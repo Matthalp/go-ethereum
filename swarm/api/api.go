@@ -297,7 +297,7 @@ func (a *API) ResolveURI(ctx context.Context, uri *URI, credentials string) (sto
 	return addr, nil
 }
 
-// Put provides singleton manifest creation on top of FileStore store
+// Update provides singleton manifest creation on top of FileStore store
 func (a *API) Put(ctx context.Context, content string, contentType string, toEncrypt bool) (k storage.Address, wait func(context.Context) error, err error) {
 	apiPutCount.Inc(1)
 	r := strings.NewReader(content)

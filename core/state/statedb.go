@@ -422,11 +422,13 @@ func (s *StateDB) updateStateObject(stateObject *stateObject) {
 	}
 	// Encode the account and update the account trie
 	addr := stateObject.Address()
+	//fmt.Println(stateObject.addrHash.String(), stateObject.data.Root.String(), hex.EncodeToString(stateObject.data.CodeHash))
 
 	data, err := rlp.EncodeToBytes(stateObject)
 	if err != nil {
 		panic(fmt.Errorf("can't encode object at %x: %v", addr[:], err))
 	}
+	//log.Info("Updating", "address", addr.String(), "account", hex.EncodeToString(data))
 	s.setError(s.trie.TryUpdate(addr[:], data))
 }
 
@@ -440,6 +442,7 @@ func (s *StateDB) deleteStateObject(stateObject *stateObject) {
 	stateObject.deleted = true
 
 	addr := stateObject.Address()
+	//log.Info("Deleting", "address", addr.String())
 	s.setError(s.trie.TryDelete(addr[:]))
 }
 
@@ -680,6 +683,7 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 		case stateObject.suicided || (isDirty && deleteEmptyObjects && stateObject.empty()):
 			// If the object has been removed, don't bother syncing it
 			// and just mark it for deletion in the trie.
+			//fmt.Println("Deleting Account", stateObject.addrHash.String(), "(", stateObject.address.String(), ")")
 			s.deleteStateObject(stateObject)
 		case isDirty:
 			// Write any contract code associated with the state object
@@ -693,10 +697,12 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 			}
 			// Write any storage changes in the state object to its storage trie.
 			if err := stateObject.CommitTrie(s.db); err != nil {
+				stateObject.CommitTrie(s.db)
 				return common.Hash{}, err
 			}
 			// Update the object in the main account trie.
 			s.updateStateObject(stateObject)
+			//fmt.Println("Updating Account", stateObject.addrHash.String(), "(", stateObject.address.String(), ")")
 		}
 		delete(s.stateObjectsDirty, addr)
 	}
@@ -704,19 +710,6 @@ func (s *StateDB) Commit(deleteEmptyObjects bool) (root common.Hash, err error) 
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { s.AccountCommits += time.Since(start) }(time.Now())
 	}
-	root, err = s.trie.Commit(func(leaf []byte, parent common.Hash) error {
-		var account Account
-		if err := rlp.DecodeBytes(leaf, &account); err != nil {
-			return nil
-		}
-		if account.Root != emptyRoot {
-			s.db.TrieDB().Reference(account.Root, parent)
-		}
-		code := common.BytesToHash(account.CodeHash)
-		if code != emptyCode {
-			s.db.TrieDB().Reference(code, parent)
-		}
-		return nil
-	})
+	root, err = s.trie.Commit(nil)
 	return root, err
 }

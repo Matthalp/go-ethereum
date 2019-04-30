@@ -68,7 +68,7 @@ func (m *txSortedMap) Get(nonce uint64) *types.Transaction {
 	return m.items[nonce]
 }
 
-// Put inserts a new transaction into the map, also updating the map's nonce
+// Update inserts a new transaction into the map, also updating the map's nonce
 // index. If a transaction already exists with the same nonce, it's overwritten.
 func (m *txSortedMap) Put(tx *types.Transaction) {
 	nonce := tx.Nonce()
@@ -410,7 +410,7 @@ func newTxPricedList(all *txLookup) *txPricedList {
 	}
 }
 
-// Put inserts a new transaction into the heap.
+// Update inserts a new transaction into the heap.
 func (l *txPricedList) Put(tx *types.Transaction) {
 	heap.Push(l.items, tx)
 }

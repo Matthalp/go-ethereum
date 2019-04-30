@@ -54,7 +54,7 @@ func (f StringField) Get() (val string, err error) {
 	return string(b), nil
 }
 
-// Put stores a string in the database.
+// Update stores a string in the database.
 func (f StringField) Put(val string) (err error) {
 	return f.db.Put(f.key, []byte(val))
 }

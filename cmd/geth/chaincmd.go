@@ -215,6 +215,14 @@ func importChain(ctx *cli.Context) error {
 	chain, db := utils.MakeChain(ctx, stack)
 	defer db.Close()
 
+
+	//k1, err := hex.DecodeString("79f97413d73b2c0d0555d85e764bb616e57e7f30c66c8216f626e958d3fa24d700003b79b2")
+	//k2, err := hex.DecodeString("b63c9a69e37d77edd7a022e906e43ecc276bd8e78c96c7669dd95df38d057dbc00003b79b2")
+	//db.Put(k1, []byte{80})
+	//db.Put(k2, []byte{80})
+	//db.Close()
+	//panic("Committed!")
+
 	// Start periodically gathering memory profiles
 	var peakMemAlloc, peakMemSys uint64
 	go func() {
@@ -234,6 +242,7 @@ func importChain(ctx *cli.Context) error {
 	start := time.Now()
 
 	if len(ctx.Args()) == 1 {
+		log.Info("Importing", "file", ctx.Args().First())
 		if err := utils.ImportChain(chain, ctx.Args().First()); err != nil {
 			log.Error("Import error", "err", err)
 		}

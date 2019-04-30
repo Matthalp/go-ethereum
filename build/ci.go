@@ -701,7 +701,7 @@ func stageDebianSource(tmpdir string, meta debMetadata) (pkgdir string) {
 	// Copy the source code.
 	build.MustRunCommand("git", "checkout-index", "-a", "--prefix", pkgdir+string(filepath.Separator))
 
-	// Put the debian build files in place.
+	// Update the debian build files in place.
 	debian := filepath.Join(pkgdir, "debian")
 	build.Render("build/deb/"+meta.PackageName+"/deb.rules", filepath.Join(debian, "rules"), 0755, meta)
 	build.Render("build/deb/"+meta.PackageName+"/deb.changelog", filepath.Join(debian, "changelog"), 0644, meta)

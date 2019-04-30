@@ -156,7 +156,7 @@ func (f Index) Has(keyFields Item) (bool, error) {
 	return f.db.Has(key)
 }
 
-// Put accepts Item to encode information from it
+// Update accepts Item to encode information from it
 // and save it to the database.
 func (f Index) Put(i Item) (err error) {
 	key, err := f.encodeKeyFunc(i)
@@ -170,7 +170,7 @@ func (f Index) Put(i Item) (err error) {
 	return f.db.Put(key, value)
 }
 
-// PutInBatch is the same as Put method, but it just
+// PutInBatch is the same as Update method, but it just
 // saves the key/value pair to the batch instead
 // directly to the database.
 func (f Index) PutInBatch(batch *leveldb.Batch, i Item) (err error) {

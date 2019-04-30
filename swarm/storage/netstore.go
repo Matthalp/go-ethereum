@@ -73,7 +73,7 @@ func NewNetStore(store SyncChunkStore, nnf NewNetFetcherFunc) (*NetStore, error)
 	}, nil
 }
 
-// Put stores a chunk in localstore, and delivers to all requestor peers using the fetcher stored in
+// Update stores a chunk in localstore, and delivers to all requestor peers using the fetcher stored in
 // the fetchers cache
 func (n *NetStore) Put(ctx context.Context, ch Chunk) error {
 	n.mu.Lock()
@@ -337,7 +337,7 @@ func (f *fetcher) Fetch(rctx context.Context) (Chunk, error) {
 	}
 }
 
-// deliver is called by NetStore.Put to notify all pending requests
+// deliver is called by NetStore.Update to notify all pending requests
 func (f *fetcher) deliver(ctx context.Context, ch Chunk) {
 	f.deliverOnce.Do(func() {
 		f.chunk = ch

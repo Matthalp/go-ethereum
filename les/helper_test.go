@@ -70,7 +70,7 @@ contract test {
 
     uint256[100] data;
 
-    function Put(uint256 addr, uint256 value) {
+    function Update(uint256 addr, uint256 value) {
         data[addr] = value;
     }
 

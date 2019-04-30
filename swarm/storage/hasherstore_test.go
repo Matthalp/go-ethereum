@@ -45,7 +45,7 @@ func TestHasherStore(t *testing.T) {
 		chunkStore := NewMapChunkStore()
 		hasherStore := NewHasherStore(chunkStore, MakeHashFunc(DefaultHash), tt.toEncrypt)
 
-		// Put two random chunks into the hasherStore
+		// Update two random chunks into the hasherStore
 		chunkData1 := GenerateRandomChunk(int64(tt.chunkLength)).Data()
 		ctx, cancel := context.WithTimeout(context.Background(), getTimeout)
 		defer cancel()

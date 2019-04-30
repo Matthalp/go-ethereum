@@ -207,7 +207,7 @@ func testIterator(t *testing.T, mock bool) {
 		chunkkeys[i] = chunks[i].Address()
 		err := db.Put(context.TODO(), chunks[i])
 		if err != nil {
-			t.Fatalf("dbStore.Put failed: %v", err)
+			t.Fatalf("dbStore.Update failed: %v", err)
 		}
 	}
 

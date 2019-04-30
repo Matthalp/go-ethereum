@@ -99,7 +99,7 @@ func (db *Database) Get(key []byte) ([]byte, error) {
 	return nil, errMemorydbNotFound
 }
 
-// Put inserts the given value into the key-value store.
+// Update inserts the given value into the key-value store.
 func (db *Database) Put(key []byte, value []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
@@ -233,7 +233,7 @@ type batch struct {
 	size   int
 }
 
-// Put inserts the given value into the batch for later committing.
+// Update inserts the given value into the batch for later committing.
 func (b *batch) Put(key, value []byte) error {
 	b.writes = append(b.writes, keyvalue{common.CopyBytes(key), common.CopyBytes(value), false})
 	b.size += len(value)
@@ -326,6 +326,10 @@ func (it *iterator) Last() bool {
 		it.values = it.values[len(it.values)-1:]
 	}
 	return len(it.keys) > 0
+}
+
+func (it *iterator) Prev() bool {
+	panic("`Prev() not implemented")
 }
 
 // Error returns any accumulated error. Exhausting all the key/value pairs

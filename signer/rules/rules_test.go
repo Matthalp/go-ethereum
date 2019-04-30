@@ -301,22 +301,22 @@ func TestStorage(t *testing.T) {
 
 	js := `
 	function testStorage(){
-		storage.Put("mykey", "myvalue")
+		storage.Update("mykey", "myvalue")
 		a = storage.Get("mykey")
 
-		storage.Put("mykey", ["a", "list"])  	// Should result in "a,list"
+		storage.Update("mykey", ["a", "list"])  	// Should result in "a,list"
 		a += storage.Get("mykey")
 
 
-		storage.Put("mykey", {"an": "object"}) 	// Should result in "[object Object]"
+		storage.Update("mykey", {"an": "object"}) 	// Should result in "[object Object]"
 		a += storage.Get("mykey")
 
 
-		storage.Put("mykey", JSON.stringify({"an": "object"})) // Should result in '{"an":"object"}'
+		storage.Update("mykey", JSON.stringify({"an": "object"})) // Should result in '{"an":"object"}'
 		a += storage.Get("mykey")
 
 		a += storage.Get("missingkey")		//Missing keys should result in empty string
-		storage.Put("","missing key==noop") // Can't store with 0-length key
+		storage.Update("","missing key==noop") // Can't store with 0-length key
 		a += storage.Get("")				// Should result in ''
 
 		var b = new BigNumber(2)
@@ -420,7 +420,7 @@ const ExampleTxWindow = `
 		}
 		// Add this to the storage
 		txs.push({tstamp: new Date().getTime(), value: value});
-		storage.Put("txs", JSON.stringify(txs));
+		storage.Update("txs", JSON.stringify(txs));
 	}
 
 `

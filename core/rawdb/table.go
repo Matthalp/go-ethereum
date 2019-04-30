@@ -50,7 +50,7 @@ func (t *table) Get(key []byte) ([]byte, error) {
 	return t.db.Get(append([]byte(t.prefix), key...))
 }
 
-// Put inserts the given value into the database at a prefixed version of the
+// Update inserts the given value into the database at a prefixed version of the
 // provided key.
 func (t *table) Put(key []byte, value []byte) error {
 	return t.db.Put(append([]byte(t.prefix), key...), value)
@@ -128,7 +128,7 @@ type tableBatch struct {
 	prefix string
 }
 
-// Put inserts the given value into the batch for later committing.
+// Update inserts the given value into the batch for later committing.
 func (b *tableBatch) Put(key, value []byte) error {
 	return b.batch.Put(append([]byte(b.prefix), key...), value)
 }

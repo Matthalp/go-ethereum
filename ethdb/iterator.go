@@ -48,6 +48,7 @@ type Iterator interface {
 	// be called multiple times without causing error.
 	Release()
 	Last() bool
+	Prev() bool
 }
 
 // Iteratee wraps the NewIterator methods of a backing data store.

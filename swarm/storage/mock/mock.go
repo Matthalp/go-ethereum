@@ -75,7 +75,7 @@ func (n *NodeStore) Get(key []byte) (data []byte, err error) {
 	return n.store.Get(n.addr, key)
 }
 
-// Put saves chunk data for a key for a node that has the address
+// Update saves chunk data for a key for a node that has the address
 // provided on NodeStore initialization.
 func (n *NodeStore) Put(key []byte, data []byte) error {
 	return n.store.Put(n.addr, key, data)

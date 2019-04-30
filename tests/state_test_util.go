@@ -20,7 +20,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/ethereum/go-ethereum/turbotrie"
+	"github.com/ethereum/go-ethereum/ludicroustrie"
 	"math/big"
 	"strings"
 
@@ -141,12 +141,19 @@ func (t *StateTest) Run(subtest StateSubtest, vmconfig vm.Config) (*state.StateD
 
 	gaspool := new(core.GasPool)
 	gaspool.AddGas(block.GasLimit())
+	if statedb == nil {
+		fmt.Println("OH NO")
+	}
 	snapshot := statedb.Snapshot()
 	if _, _, _, err := core.ApplyMessage(evm, msg, gaspool); err != nil {
 		statedb.RevertToSnapshot(snapshot)
 	}
 	// Commit block
-	statedb.Commit(config.IsEIP158(block.Number()))
+	_, err = statedb.Commit(config.IsEIP158(block.Number()))
+	if err != nil {
+		return nil, fmt.Errorf("error committing: %v", err)
+	}
+
 	// Add 0-value mining reward. This only makes a difference in the cases
 	// where
 	// - the coinbase suicided, or
@@ -157,6 +164,7 @@ func (t *StateTest) Run(subtest StateSubtest, vmconfig vm.Config) (*state.StateD
 	root := statedb.IntermediateRoot(config.IsEIP158(block.Number()))
 	// N.B: We need to do this in a two-step process, because the first Commit takes care
 	// of suicides, and we need to touch the coinbase _after_ it has potentially suicided.
+	//fmt.Println("STATEDB ERR", statedb.Error())
 	if root != common.Hash(post.Root) {
 		return statedb, fmt.Errorf("post state root mismatch: got %x, want %x", root, post.Root)
 	}
@@ -171,9 +179,12 @@ func (t *StateTest) gasLimit(subtest StateSubtest) uint64 {
 }
 
 func MakePreState(db ethdb.Database, accounts core.GenesisAlloc) *state.StateDB {
-	sdb, _ := turbotrie.NewTurboTrieStateDB(db)
+	sdb := ludicroustrie.NewLudicrousTrieStateDB(db)
 	//statedb, _ := state.New(common.Hash{},0, sdb)
-	statedb, _ := state.New(common.Hash{},0, sdb)
+	statedb, err := state.New(common.Hash{},0, sdb)
+	if err != nil {
+		fmt.Println("err-1", err)
+	}
 	for addr, a := range accounts {
 		statedb.SetCode(addr, a.Code)
 		statedb.SetNonce(addr, a.Nonce)
@@ -183,8 +194,16 @@ func MakePreState(db ethdb.Database, accounts core.GenesisAlloc) *state.StateDB 
 		}
 	}
 	// Commit and re-open to start with a clean state.
-	root, _ := statedb.Commit(false)
-	statedb, _ = state.New(root, 0, sdb)
+	root, err := statedb.Commit(false)
+	if err != nil {
+		fmt.Println("err0", err)
+	}
+	statedb, err = state.New(root, 0, sdb)
+	if err != nil {
+		statedb, err = state.New(root, 0, sdb)
+
+		fmt.Println("err", err)
+	}
 	return statedb
 }
 

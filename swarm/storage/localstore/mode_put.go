@@ -35,7 +35,7 @@ const (
 	ModePutUpload
 )
 
-// Putter provides Put method to store Chunks
+// Putter provides Update method to store Chunks
 // to database.
 type Putter struct {
 	db   *DB
@@ -51,7 +51,7 @@ func (db *DB) NewPutter(mode ModePut) *Putter {
 	}
 }
 
-// Put stores the Chunk to database and depending
+// Update stores the Chunk to database and depending
 // on the Putter mode, it updates required indexes.
 func (p *Putter) Put(ch chunk.Chunk) (err error) {
 	return p.db.put(p.mode, chunkToItem(ch))

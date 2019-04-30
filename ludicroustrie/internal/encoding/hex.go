@@ -1,5 +1,7 @@
 package encoding
 
+import "encoding/hex"
+
 // HEX encoding contains one byte for each nibble of the offset and an optional trailing
 // 'terminator' byte of val 0x10 which indicates whether or not the VersionedNode at the offset
 // contains a val. Hex offset encoding is used for nodes loaded in memory because it's
@@ -10,6 +12,10 @@ type Hex []byte
 const hexEncodingKeySize = 65
 
 var hexEncodingTerm byte = 0x10
+
+func (h Hex) String() string {
+	return hex.EncodeToString(h)
+}
 
 func (h Hex) Compact() Compact {
 	terminator := byte(0)

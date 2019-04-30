@@ -5,13 +5,13 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/ethereum/go-ethereum/turbotrie/internal/encoding"
+	"github.com/ethereum/go-ethereum/ludicroustrie/internal/encoding"
 )
 
-// A Key represents the Key used to store nodes in Collection.
+// A Prefix represents the Prefix used to store nodes in Collection.
 type Key []byte
 
-// NewKey returns a new Collection Key representing the VersionedNode path and
+// NewKey returns a new Collection Prefix representing the VersionedNode path and
 // Version.
 func NewKey(path encoding.Hex, version uint32) Key {
 	p := make(encoding.Hex, len(path))
@@ -32,7 +32,7 @@ func (k Key) Rel(base encoding.Hex) encoding.Hex {
 	return path[len(base):]
 }
 
-// String returns a string representation of the Collection Key.
+// String returns a string representation of the Collection Prefix.
 func (k Key) String() string {
 	odd := k[len(k)-5] == 1
 	return fmt.Sprintf("{path=%q, odd=%t, Version=%d}", hex.EncodeToString(k.path()), odd, k.Version())
@@ -42,7 +42,7 @@ func (k Key) path() encoding.Keybytes {
 	return encoding.Keybytes(k[:len(k)-5])
 }
 
-// Version returns the Version the Collection Key corresponds to.
+// Version returns the Version the Collection Prefix corresponds to.
 func (k Key) Version() uint32 {
 	return binary.BigEndian.Uint32(k[len(k)-4:])
 }

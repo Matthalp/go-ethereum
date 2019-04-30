@@ -144,7 +144,7 @@ func New(path string) (s *Store, err error) {
 	return s, nil
 }
 
-// Put stores the chunk and sets it store timestamp.
+// Update stores the chunk and sets it store timestamp.
 func (s *Store) Put(_ context.Context, ch storage.Chunk) (err error) {
 	return s.retrievalIndex.Put(shed.Item{
 		Address:        ch.Address(),
@@ -196,7 +196,7 @@ func (s *Store) Get(_ context.Context, addr storage.Address) (c storage.Chunk, e
 	// Specify new access timestamp
 	accessTimestamp := time.Now().UTC().UnixNano()
 
-	// Put new access timestamp in access index.
+	// Update new access timestamp in access index.
 	err = s.accessIndex.PutInBatch(batch, shed.Item{
 		Address:         addr,
 		AccessTimestamp: accessTimestamp,
@@ -205,7 +205,7 @@ func (s *Store) Get(_ context.Context, addr storage.Address) (c storage.Chunk, e
 		return nil, err
 	}
 
-	// Put new access timestamp in gc index.
+	// Update new access timestamp in gc index.
 	err = s.gcIndex.PutInBatch(batch, shed.Item{
 		Address:         item.Address,
 		AccessTimestamp: accessTimestamp,

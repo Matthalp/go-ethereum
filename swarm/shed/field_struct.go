@@ -51,7 +51,7 @@ func (f StructField) Get(val interface{}) (err error) {
 	return rlp.DecodeBytes(b, val)
 }
 
-// Put marshals provided val and saves it to the database.
+// Update marshals provided val and saves it to the database.
 func (f StructField) Put(val interface{}) (err error) {
 	b, err := rlp.EncodeToBytes(val)
 	if err != nil {

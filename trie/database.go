@@ -320,8 +320,6 @@ func (db *Database) InsertBlob(hash common.Hash, blob []byte) {
 	defer db.lock.Unlock()
 
 	db.insert(hash, blob, rawNode(blob))
-	db.insert(common.HexToHash("12345678"), blob, rawNode(blob))
-
 }
 
 // insert inserts a collapsed trie Node into the memory database. This method is
@@ -782,7 +780,7 @@ type cleaner struct {
 	db *Database
 }
 
-// Put reacts to database writes and implements dirty data uncaching. This is the
+// Update reacts to database writes and implements dirty data uncaching. This is the
 // post-processing step of a commit operation where the already persisted trie is
 // removed from the dirty cache and moved into the clean cache. The reason behind
 // the two-phase commit is to ensure ensure data availability while moving from

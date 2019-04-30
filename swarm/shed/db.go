@@ -97,7 +97,7 @@ func NewDB(path string, metricsPrefix string) (db *DB, err error) {
 	return db, nil
 }
 
-// Put wraps LevelDB Put method to increment metrics counter.
+// Update wraps LevelDB Update method to increment metrics counter.
 func (db *DB) Put(key []byte, value []byte) (err error) {
 	err = db.ldb.Put(key, value, nil)
 	if err != nil {

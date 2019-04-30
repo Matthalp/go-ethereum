@@ -86,24 +86,31 @@ func (n HashNode) String() string   { return n.fstring("") }
 func (n ValueNode) String() string  { return n.fstring("") }
 
 func (n *FullNode) fstring(ind string) string {
-	resp := fmt.Sprintf("[\n%s  ", ind)
+	resp := fmt.Sprintf("FullNode{%s", ind)
 	for i, node := range &n.Children {
 		if node == nil {
-			resp += fmt.Sprintf("%s: <nil> ", indices[i])
+			resp += fmt.Sprintf("%s: Nil{} ", indices[i])
 		} else {
 			resp += fmt.Sprintf("%s: %v", indices[i], node.fstring(ind+"  "))
 		}
+		if i < len(n.Children) - 1 {
+			resp += " "
+		}
 	}
-	return resp + fmt.Sprintf("\n%s] ", ind)
+	return resp + fmt.Sprintf("}%s] ", ind)
 }
 func (n *ShortNode) fstring(ind string) string {
-	return fmt.Sprintf("{%x: %v} ", n.Key, n.Val.fstring(ind+"  "))
+	if hasTerm(n.Key) {
+		return fmt.Sprintf("LeafNode{%x: %v} ", n.Key, n.Val.fstring(ind+"  "))
+	} else {
+		return fmt.Sprintf("ExtensionNode{%x: %v} ", n.Key, n.Val.fstring(ind+"  "))
+	}
 }
 func (n HashNode) fstring(ind string) string {
-	return fmt.Sprintf("<%x> ", []byte(n))
+	return fmt.Sprintf("Hash{%x}", []byte(n))
 }
 func (n ValueNode) fstring(ind string) string {
-	return fmt.Sprintf("%x ", []byte(n))
+	return fmt.Sprintf("Value{%x}", []byte(n))
 }
 
 func mustDecodeNode(hash, buf []byte) Node {

@@ -131,9 +131,9 @@ type hashExplorer struct {
 	lock       sync.Mutex
 }
 
-// HashExplorer's Put will add just the chunk hashes to its `References`
+// HashExplorer's Update will add just the chunk hashes to its `References`
 func (he *hashExplorer) Put(ctx context.Context, chunkData ChunkData) (Reference, error) {
-	// Need to do the actual Put, which returns the references
+	// Need to do the actual Update, which returns the references
 	ref, err := he.hasherStore.Put(ctx, chunkData)
 	if err != nil {
 		return nil, err

@@ -28,9 +28,9 @@ type Reader interface {
 	Get(key []byte) ([]byte, error)
 }
 
-// Writer wraps the Put method of a backing data store.
+// Writer wraps the Update method of a backing data store.
 type Writer interface {
-	// Put inserts the given value into the key-value data store.
+	// Update inserts the given value into the key-value data store.
 	Put(key []byte, value []byte) error
 
 	// Delete removes the key from the key-value data store.

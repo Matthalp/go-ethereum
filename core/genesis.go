@@ -22,7 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/turbotrie"
+	"github.com/ethereum/go-ethereum/ludicroustrie"
 	"math/big"
 	"strings"
 
@@ -231,7 +231,7 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	if db == nil {
 		db = rawdb.NewMemoryDatabase()
 	}
-	sdb, _ := turbotrie.NewTurboTrieStateDB(db)
+	sdb := ludicroustrie.NewLudicrousTrieStateDB(db)
 	statedb, _ := state.New(common.Hash{}, 0, sdb)
 
 	for addr, account := range g.Alloc {

@@ -281,7 +281,7 @@ type encReader struct {
 func (r *encReader) Read(b []byte) (n int, err error) {
 	for {
 		if r.piece = r.next(); r.piece == nil {
-			// Put the encode buffer back into the pool at EOF when it
+			// Update the encode buffer back into the pool at EOF when it
 			// is first encountered. Subsequent calls still return EOF
 			// as the error but the buffer is no longer valid.
 			if r.buf != nil {

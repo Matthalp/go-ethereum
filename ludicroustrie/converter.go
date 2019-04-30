@@ -1,15 +1,16 @@
-package turbotrie
+package ludicroustrie
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/ludicroustrie/internal/encoding"
+	"github.com/ethereum/go-ethereum/ludicroustrie/internal/storage"
+	"github.com/ethereum/go-ethereum/ludicroustrie/internal/versionnode"
 	"github.com/ethereum/go-ethereum/trie"
-	"github.com/ethereum/go-ethereum/turbotrie/internal/encoding"
-	"github.com/ethereum/go-ethereum/turbotrie/internal/node"
-	"github.com/ethereum/go-ethereum/turbotrie/internal/storage"
 	"reflect"
 )
 
 const doVisitChildren = true
+
 var noExtension *trie.ShortNode
 
 type OnLeafCallback func(key, value []byte)
@@ -26,11 +27,10 @@ func MigrateLegacyTrieToTurboTrie(legacy *trie.Trie, collection *storage.Collect
 	return migration.migrateRemainingNodes()
 }
 
-
 type migration struct {
-	legacyIt trie.NodeIterator
+	legacyIt  trie.NodeIterator
 	finalizer *storage.Finalizer
-	onLeaf func(key, value []byte)
+	onLeaf    func(key, value []byte)
 }
 
 func (m *migration) migrateRootNode() error {
@@ -60,7 +60,7 @@ func (m *migration) migrateRemainingNodes() error {
 	return nil
 }
 
-func (m *migration) migrateNextNode() (node.VersionedNode, error) {
+func (m *migration) migrateNextNode() (versionnode.Node, error) {
 	path, node, err := m.nextNode()
 	if err != nil {
 		return nil, err
@@ -73,12 +73,12 @@ func (m *migration) migrateNextNode() (node.VersionedNode, error) {
 	return node, nil
 }
 
-func (m *migration) nextNode() (encoding.Hex, node.VersionedNode, error) {
+func (m *migration) nextNode() (encoding.Hex, versionnode.Node, error) {
 	path := m.legacyIt.Path()
 	switch legacy := m.legacyIt.Node().(type) {
 	case *trie.ShortNode:
 		// Check if leaf legacy.
-		if  encoding.Hex(legacy.Key).HasTerm() {
+		if encoding.Hex(legacy.Key).HasTerm() {
 			// Skip the *trie.Value nextNode as its already handled above.
 			m.next()
 			converted, err := m.convertLegacyLeafNode(legacy)
@@ -117,37 +117,37 @@ func (m *migration) nextNode() (encoding.Hex, node.VersionedNode, error) {
 	}
 }
 
-func (m *migration) convertLegacyLeafNode(legacyLeaf *trie.ShortNode) (*node.Leaf, error) {
-	value := node.Value(legacyLeaf.Val.(trie.ValueNode))
-	leaf := node.NewLeaf(legacyLeaf.Key, value, m.version())
+func (m *migration) convertLegacyLeafNode(legacyLeaf *trie.ShortNode) (*versionnode.Leaf, error) {
+	value := versionnode.Value(legacyLeaf.Val.(trie.ValueNode))
+	leaf := versionnode.NewLeaf(legacyLeaf.Key, value, m.version())
 	return leaf, nil
 }
 
-func (m *migration) convertLegacyFullNode(full *trie.FullNode) (*node.Full, error) {
+func (m *migration) convertLegacyFullNode(full *trie.FullNode) (*versionnode.Full, error) {
 	var key encoding.Hex
 	children, err := m.convertLegacyChildren(full.Children)
 	if err != nil {
 		return nil, err
 	}
 
-	return node.NewFull(key, children, m.version()), nil
+	return versionnode.NewFull(key, children, m.version()), nil
 }
 
-func (m *migration) convertLegacyFullNodeWithExtension(extension *trie.ShortNode) (*node.Full, error) {
+func (m *migration) convertLegacyFullNodeWithExtension(extension *trie.ShortNode) (*versionnode.Full, error) {
 	key := encoding.Hex(extension.Key)
 	children, err := m.convertLegacyChildren(extension.Val.(*trie.FullNode).Children)
 	if err != nil {
 		return nil, err
 	}
 
-	return node.NewFull(key, children, m.version()), nil
+	return versionnode.NewFull(key, children, m.version()), nil
 }
 
-func (m *migration) convertLegacyChildren(legacyChildren trie.Children) (node.Children, error) {
-	var children node.Children
-	for i, legacyChild := range legacyChildren[:node.NumChildren] {
+func (m *migration) convertLegacyChildren(legacyChildren trie.Children) (versionnode.Children, error) {
+	var children versionnode.Children
+	for i, legacyChild := range legacyChildren[:versionnode.NumChildren] {
 		if legacyChild == nil {
-			children[i] = node.NewNil()
+			children[i] = versionnode.NewNil()
 			continue
 		}
 
@@ -162,7 +162,6 @@ func (m *migration) convertLegacyChildren(legacyChildren trie.Children) (node.Ch
 
 	return children, nil
 }
-
 
 func (m *migration) next() bool {
 	return m.legacyIt.Next(doVisitChildren)
@@ -191,7 +190,7 @@ func (m *migration) version() uint32 {
 //	case trie.ValueNode:
 //		dstDB.Store(path, version, n)
 //	case *trie.ShortNode:
-//		visit(n.Val, trieDB, dstDB, path.Join(encoding.Compact(n.Key).Hex()), version)
+//		visit(n.Val, trieDB, dstDB, path.Join(encoding.Compact(n.Prefix).Hex()), version)
 //	case *trie.FullNode:
 //		return
 //	case *trie.HashNode:
@@ -225,7 +224,7 @@ func (m *migration) version() uint32 {
 //}
 //
 //func (c *converter) visit2ShortNode(nextNode *trie.ShortNode,  path encoding.Hex) error {
-//	if encoding.Compact(nextNode.Key).IsLeaf() {
+//	if encoding.Compact(nextNode.Prefix).IsLeaf() {
 //		return c.visit2ValueNode(nextNode, path)
 //	} else {
 //		return c.visit2ExtensionNode(nextNode, path)
@@ -234,19 +233,19 @@ func (m *migration) version() uint32 {
 //
 //func (c *converter) visit2ValueNode(nextNode *trie.ShortNode, path encoding.Hex) error {
 //	// Store as a value nextNode.
-//	return c.storage.Store(path.Join(encoding.Compact(nextNode.Key).Hex()), c.version(), nextNode.Val.(trie.ValueNode))
+//	return c.storage.Store(path.Join(encoding.Compact(nextNode.Prefix).Hex()), c.version(), nextNode.Val.(trie.ValueNode))
 //}
 //
 //func (c *converter) visit2ExtensionNode(nextNode *trie.ShortNode, path encoding.Hex) error {
 //	switch child := nextNode.Val.(type) {
 //	case *trie.FullNode:
-//		return c.visit2FullNode(child, path, encoding.Compact(nextNode.Key).Hex())
+//		return c.visit2FullNode(child, path, encoding.Compact(nextNode.Prefix).Hex())
 //	case trie.HashNode:
 //		full, enc, err := c.trieDB.GetNode(common.BytesToHash(child))
 //		if err != nil {
 //			return err
 //		}
-//		return c.visit2FullNode(full.(*trie.FullNode), path, encoding.Compact(nextNode.Key).Hex())
+//		return c.visit2FullNode(full.(*trie.FullNode), path, encoding.Compact(nextNode.Prefix).Hex())
 //	default:
 //		panic(fmt.Sprintf("Unknown nextNode type %s", reflect.TypeOf(child)))
 //	}
@@ -257,7 +256,7 @@ func (m *migration) version() uint32 {
 //		switch child := child.(type) {
 //		case *trie.ShortNode:
 //			// Handle leaf case only.
-//			if encoding.Compact(child.Key).IsLeaf() {
+//			if encoding.Compact(child.Prefix).IsLeaf() {
 //				return c.visit2ValueNode(child, append(path, byte(i)))
 //		case *trie.FullNode:
 //			// Need to visit leaf children.

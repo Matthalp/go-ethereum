@@ -153,7 +153,7 @@ func (db *Database) Get(key []byte) ([]byte, error) {
 	return dat, nil
 }
 
-// Put inserts the given value into the key-value store.
+// Update inserts the given value into the key-value store.
 func (db *Database) Put(key []byte, value []byte) error {
 	return db.db.Put(key, value, nil)
 }
@@ -391,7 +391,7 @@ type batch struct {
 	size int
 }
 
-// Put inserts the given value into the batch for later committing.
+// Update inserts the given value into the batch for later committing.
 func (b *batch) Put(key, value []byte) error {
 	b.b.Put(key, value)
 	b.size += len(value)
@@ -432,7 +432,7 @@ type replayer struct {
 	failure error
 }
 
-// Put inserts the given value into the key-value data store.
+// Update inserts the given value into the key-value data store.
 func (r *replayer) Put(key, value []byte) {
 	// If the replay already failed, stop executing ops
 	if r.failure != nil {

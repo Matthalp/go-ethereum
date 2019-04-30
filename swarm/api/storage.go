@@ -42,7 +42,7 @@ func NewStorage(api *API) *Storage {
 	return &Storage{api}
 }
 
-// Put uploads the content to the swarm with a simple manifest speficying
+// Update uploads the content to the swarm with a simple manifest speficying
 // its content type
 //
 // DEPRECATED: Use the HTTP API instead

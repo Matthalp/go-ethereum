@@ -82,7 +82,7 @@ func (s *GlobalStore) Get(addr common.Address, key []byte) (data []byte, err err
 	return data, nil
 }
 
-// Put saves the chunk data for node with address addr.
+// Update saves the chunk data for node with address addr.
 func (s *GlobalStore) Put(addr common.Address, key []byte, data []byte) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

@@ -432,7 +432,7 @@ func TestClientBzzWithFeed(t *testing.T) {
 	// Build a feed request to update data
 	request := feed.NewFirstRequest(topic)
 
-	// Put the 32-byte address of the manifest into the feed update
+	// Update the 32-byte address of the manifest into the feed update
 	request.SetData(manifestAddress)
 
 	// Sign the update

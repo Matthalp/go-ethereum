@@ -65,7 +65,7 @@ func NewHasherStore(store ChunkStore, hashFunc SwarmHasher, toEncrypt bool) *has
 	return h
 }
 
-// Put stores the chunkData into the ChunkStore of the hasherStore and returns the reference.
+// Update stores the chunkData into the ChunkStore of the hasherStore and returns the reference.
 // If hasherStore has a chunkEncryption object, the data will be encrypted.
 // Asynchronous function, the data will not necessarily be stored when it returns.
 func (h *hasherStore) Put(ctx context.Context, chunkData ChunkData) (Reference, error) {
@@ -118,7 +118,7 @@ func (h *hasherStore) Close() {
 
 // Wait returns when
 //    1) the Close() function has been called and
-//    2) all the chunks which has been Put has been stored
+//    2) all the chunks which has been Update has been stored
 func (h *hasherStore) Wait(ctx context.Context) error {
 	defer close(h.quitC)
 	var nrStoredChunks uint64 // number of stored chunks

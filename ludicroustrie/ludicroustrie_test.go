@@ -1,17 +1,13 @@
-package turbotrie
+package ludicroustrie
 
 import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethdb/memorydb"
+	"github.com/ethereum/go-ethereum/ludicroustrie/internal/storage"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/turbotrie/internal/storage"
 	"math/big"
-	"sort"
-	"strings"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -44,8 +40,8 @@ func TestGet_ReturnsError(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			db := rawdb.NewMemoryDatabase()
-			trie2 := NewEmptyTurboTrie(db)
+			db := memorydb.New()
+			trie2 := NewEmptyLudicrousTrie(db, 0)
 
 			if _, err := trie2.Get(tc.key); err == nil {
 				t.Errorf("trie2.Get(%q) = _, %v, want _, <error>", hex.EncodeToString(tc.key), err)
@@ -88,11 +84,11 @@ func TestPut_ReturnsError(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			db := rawdb.NewMemoryDatabase()
-			trie2 := NewEmptyTurboTrie(db)
+			db := memorydb.New()
+			trie2 := NewEmptyLudicrousTrie(db, 0)
 
-			if err := trie2.Put(tc.key, tc.value); err == nil {
-				t.Errorf("trie2.Put(%q, %q) = %v, want <error>", hex.EncodeToString(tc.key), hex.EncodeToString(tc.value), err)
+			if err := trie2.Update(tc.key, tc.value); err == nil {
+				t.Errorf("trie2.Update(%q, %q) = %v, want <error>", hex.EncodeToString(tc.key), hex.EncodeToString(tc.value), err)
 			}
 		})
 	}
@@ -119,8 +115,8 @@ func TestRemove_ReturnsError(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			db := rawdb.NewMemoryDatabase()
-			trie2 := NewEmptyTurboTrie(db)
+			db := memorydb.New()
+			trie2 := NewEmptyLudicrousTrie(db, 0)
 
 			if err := trie2.Remove(tc.key); err == nil {
 				t.Errorf("trie2.Remove(%q) = %v, want <error>", hex.EncodeToString(tc.key), err)
@@ -130,8 +126,8 @@ func TestRemove_ReturnsError(t *testing.T) {
 }
 
 func TestTrie3(t *testing.T) {
-	db := rawdb.NewMemoryDatabase()
-	trie2 := NewEmptyTurboTrie(db)
+	db := memorydb.New()
+	trie2 := NewEmptyLudicrousTrie(db, 0)
 
 	keys := [][]byte{
 		parseHexString(t, "", "0x0000000000000000000000000000000000000000000000000000000000000000"),
@@ -145,8 +141,8 @@ func TestTrie3(t *testing.T) {
 	}
 
 	for i := range keys {
-		if err := trie2.Put(keys[i], values[i]); err != nil {
-			t.Errorf("trie.Put(%q, %q) = %s, want <nil>", hex.EncodeToString(keys[i]), hex.EncodeToString(values[i]), err)
+		if err := trie2.Update(keys[i], values[i]); err != nil {
+			t.Errorf("trie.Update(%q, %q) = %s, want <nil>", hex.EncodeToString(keys[i]), hex.EncodeToString(values[i]), err)
 		}
 	}
 
@@ -174,8 +170,8 @@ func TestTrie3(t *testing.T) {
 		t.Fatalf("trie.Hash() = <nil>, %v, want <common.Hash>, <nil>", err)
 	}
 
-	if err := trie2.Put(keys[1], []byte{4}); err != nil {
-		t.Errorf("trie.Put(%s, %s) = %v, want <nil>", hex.EncodeToString(keys[1]), hex.EncodeToString([]byte{4}), err)
+	if err := trie2.Update(keys[1], []byte{4}); err != nil {
+		t.Errorf("trie.Update(%s, %s) = %v, want <nil>", hex.EncodeToString(keys[1]), hex.EncodeToString([]byte{4}), err)
 	}
 
 	// TODO: Commit should return Hash, Version
@@ -194,7 +190,7 @@ func TestTrie3(t *testing.T) {
 		fmt.Println("key", storage.Key(it.Key()).String(), "value", hex.EncodeToString(it.Value()))
 	}
 
-	loadedTrie, err := NewTurboTrie(db, hash1, version1)
+	loadedTrie, err := NewLudicrousTrie(db, hash1, version1)
 	if err != nil {
 		t.Fatalf("NewTurboTrie(db, %q, %d) = <nil>, %v, want *Trie2, <nil>", hash2.String(), version2, err)
 	}
@@ -203,7 +199,7 @@ func TestTrie3(t *testing.T) {
 		t.Errorf("trie.Get(%s) = %s, %v, want %s, <nil>", hex.EncodeToString(keys[1]), hex.EncodeToString(value), err, hex.EncodeToString([]byte{1}))
 	}
 
-	loadedTrie, err = NewTurboTrie(db, hash2, version2)
+	loadedTrie, err = NewLudicrousTrie(db, hash2, version2)
 	if err != nil {
 		t.Fatalf("NewTurboTrie(db, %q, %d) = <nil>, %v, want *Trie2, <nil>", hash2.String(), version2, err)
 	}
@@ -212,7 +208,7 @@ func TestTrie3(t *testing.T) {
 		t.Errorf("trie.Get(%s) = %s, %v, want <nil>, <nil>", hex.EncodeToString(keys[1]), hex.EncodeToString(value), err)
 	}
 
-	loadedTrie, err = NewTurboTrie(db, hash3, version3)
+	loadedTrie, err = NewLudicrousTrie(db, hash3, version3)
 	if err != nil {
 		t.Fatalf("NewTurboTrie(db, %q, %d) = <nil>, %v, want *Trie2, <nil>", hash2.String(), version2, err)
 	}
@@ -221,7 +217,8 @@ func TestTrie3(t *testing.T) {
 		t.Errorf("trie.Get(%s) = %s, %v, want %s, <nil>", hex.EncodeToString(keys[1]), hex.EncodeToString(value), err, hex.EncodeToString([]byte{4}))
 	}
 
-	loadedTrie.storage.Prune(version3)
+	panic("Re-enabled pruning")
+	//loadedTrie.storage.Prune(version3)
 
 	it = db.NewIterator()
 	for it.Next() {
@@ -229,127 +226,127 @@ func TestTrie3(t *testing.T) {
 	}
 }
 
-func TestAlexeyDemo(t *testing.T) {
-	db := rawdb.NewMemoryDatabase()
-	turboTrie := NewEmptyTurboTrie(db)
-
-	refDB := rawdb.NewMemoryDatabase()
-	refTrieDB := trie.NewDatabase(refDB)
-	ref, _ := trie.New(common.Hash{}, refTrieDB)
-
-	keys := [][]byte{
-		parseHexString(t, "", "0x3000000000000000000000000000000000000000000000000000000000000000"),
-		parseHexString(t, "", "0xC000000000050000000000000000000000000000000000000000000000000000"),
-		parseHexString(t, "", "0xC0000000000A0000000000000000000000000000000000000000000000000000"),
-	}
-	values := [][]byte{
-		{0x30, 0x00},
-		{0xc5, 0x00},
-		{0xca, 0x00},
-	}
-
-	for i := range keys {
-		if err := turboTrie.Put(keys[i], values[i]); err != nil {
-			t.Errorf("turboTrie.Put(%q, %q) = %s, want <nil>", hex.EncodeToString(keys[i]), hex.EncodeToString(values[i]), err)
-		}
-
-		ref.Update(keys[i], values[i])
-	}
-
-	if _, err := turboTrie.Commit(); err != nil {
-		t.Errorf("turboTrie.Commit(db) = %v, want <nil>", err)
-	}
-
-	fmt.Println("VERSION 0")
-	it0 := db.NewIterator()
-	defer it0.Release()
-	for it0.Next() {
-		fmt.Println("key", hex.EncodeToString(it0.Key()), "value", hex.EncodeToString(it0.Value()))
-	}
-
-	hash, _ := ref.Commit(nil)
-	refTrieDB.Commit(hash, false)
-
-	if err := turboTrie.Put(keys[1], []byte{0xc5, 0x01}); err != nil {
-		t.Errorf("turboTrie.Put(%s, %s) = %v, want <nil>", hex.EncodeToString(keys[1]), hex.EncodeToString([]byte{4}), err)
-	}
-
-	if _, err := turboTrie.Commit(); err != nil {
-		t.Errorf("turboTrie.Commit(db) = %v, want <nil>", err)
-	}
-
-	fmt.Println("")
-	fmt.Println("VERSION 1")
-	it1 := db.NewIterator()
-	defer it1.Release()
-	for it1.Next() {
-		fmt.Println("key", hex.EncodeToString(it1.Key()), "value", hex.EncodeToString(it1.Value()))
-	}
-
-	ref.Update(keys[1], []byte{0xc5, 0x01})
-
-	hash, _ = ref.Commit(nil)
-	refTrieDB.Commit(hash, false)
-
-	if err := turboTrie.Remove(keys[1]); err != nil {
-		t.Errorf("turboTrie.Remove(%s) = %v, want <nil>", hex.EncodeToString(keys[1]), err)
-	}
-
-	ref.Delete(keys[1])
-	hash, _ = ref.Commit(nil)
-	refTrieDB.Commit(hash, false)
-
-	if _, err := turboTrie.Commit(); err != nil {
-		t.Errorf("turboTrie.Commit(db) = %v, want <nil>", err)
-	}
-
-	fmt.Println("")
-	fmt.Println("VERSION 2")
-	it2 := db.NewIterator()
-	defer it2.Release()
-	for it2.Next() {
-		fmt.Println("key", hex.EncodeToString(it2.Key()), "value", hex.EncodeToString(it2.Value()))
-	}
-
-	if err := turboTrie.Put(keys[1], []byte{0xc5, 0x03}); err != nil {
-		t.Errorf("turboTrie.Put(%s, %s) = %v, want <nil>", hex.EncodeToString(keys[1]), hex.EncodeToString([]byte{4}), err)
-	}
-
-	if _, err := turboTrie.Commit(); err != nil {
-		t.Errorf("turboTrie.Commit(db) = %v, want <nil>", err)
-	}
-
-	ref.Update(keys[1], []byte{0xc5, 0x03})
-
-	hash, _ = ref.Commit(nil)
-	refTrieDB.Commit(hash, false)
-
-	fmt.Println("")
-	fmt.Println("VERSION 3")
-	it3 := db.NewIterator()
-	defer it3.Release()
-	for it3.Next() {
-		fmt.Println("key", hex.EncodeToString(it3.Key()), "value", hex.EncodeToString(it3.Value()))
-	}
-
-	turboTrie.storage.Prune(turboTrie.version - 1)
-
-	fmt.Println("")
-	fmt.Println("AFTER PRUNING")
-	after := db.NewIterator()
-	defer after.Release()
-	for after.Next() {
-		fmt.Println("key", hex.EncodeToString(after.Key()), "value", hex.EncodeToString(after.Value()))
-	}
-
-	fmt.Println("")
-	fmt.Println("REF")
-	refIT := refDB.NewIterator()
-	defer refIT.Release()
-	for refIT.Next() {
-		fmt.Println("key", hex.EncodeToString(refIT.Key()), "value", hex.EncodeToString(refIT.Value()))
-	}
-}
+//func TestAlexeyDemo(t *testing.T) {
+//	db := rawdb.NewMemoryDatabase()
+//	turboTrie := NewEmptyTurboTrie(db)
+//
+//	refDB := rawdb.NewMemoryDatabase()
+//	refTrieDB := trie.NewDatabase(refDB)
+//	ref, _ := trie.New(common.Hash{}, refTrieDB)
+//
+//	keys := [][]byte{
+//		parseHexString(t, "", "0x3000000000000000000000000000000000000000000000000000000000000000"),
+//		parseHexString(t, "", "0xC000000000050000000000000000000000000000000000000000000000000000"),
+//		parseHexString(t, "", "0xC0000000000A0000000000000000000000000000000000000000000000000000"),
+//	}
+//	values := [][]byte{
+//		{0x30, 0x00},
+//		{0xc5, 0x00},
+//		{0xca, 0x00},
+//	}
+//
+//	for i := range keys {
+//		if err := turboTrie.Update(keys[i], values[i]); err != nil {
+//			t.Errorf("turboTrie.Update(%q, %q) = %s, want <nil>", hex.EncodeToString(keys[i]), hex.EncodeToString(values[i]), err)
+//		}
+//
+//		ref.Update(keys[i], values[i])
+//	}
+//
+//	if _, err := turboTrie.Commit(); err != nil {
+//		t.Errorf("turboTrie.Commit(db) = %v, want <nil>", err)
+//	}
+//
+//	fmt.Println("VERSION 0")
+//	it0 := db.NewIterator()
+//	defer it0.Release()
+//	for it0.Next() {
+//		fmt.Println("key", hex.EncodeToString(it0.Prefix()), "value", hex.EncodeToString(it0.Value()))
+//	}
+//
+//	hash, _ := ref.Commit(nil)
+//	refTrieDB.Commit(hash, false)
+//
+//	if err := turboTrie.Update(keys[1], []byte{0xc5, 0x01}); err != nil {
+//		t.Errorf("turboTrie.Update(%s, %s) = %v, want <nil>", hex.EncodeToString(keys[1]), hex.EncodeToString([]byte{4}), err)
+//	}
+//
+//	if _, err := turboTrie.Commit(); err != nil {
+//		t.Errorf("turboTrie.Commit(db) = %v, want <nil>", err)
+//	}
+//
+//	fmt.Println("")
+//	fmt.Println("VERSION 1")
+//	it1 := db.NewIterator()
+//	defer it1.Release()
+//	for it1.Next() {
+//		fmt.Println("key", hex.EncodeToString(it1.Prefix()), "value", hex.EncodeToString(it1.Value()))
+//	}
+//
+//	ref.Update(keys[1], []byte{0xc5, 0x01})
+//
+//	hash, _ = ref.Commit(nil)
+//	refTrieDB.Commit(hash, false)
+//
+//	if err := turboTrie.Remove(keys[1]); err != nil {
+//		t.Errorf("turboTrie.Remove(%s) = %v, want <nil>", hex.EncodeToString(keys[1]), err)
+//	}
+//
+//	ref.Delete(keys[1])
+//	hash, _ = ref.Commit(nil)
+//	refTrieDB.Commit(hash, false)
+//
+//	if _, err := turboTrie.Commit(); err != nil {
+//		t.Errorf("turboTrie.Commit(db) = %v, want <nil>", err)
+//	}
+//
+//	fmt.Println("")
+//	fmt.Println("VERSION 2")
+//	it2 := db.NewIterator()
+//	defer it2.Release()
+//	for it2.Next() {
+//		fmt.Println("key", hex.EncodeToString(it2.Prefix()), "value", hex.EncodeToString(it2.Value()))
+//	}
+//
+//	if err := turboTrie.Update(keys[1], []byte{0xc5, 0x03}); err != nil {
+//		t.Errorf("turboTrie.Update(%s, %s) = %v, want <nil>", hex.EncodeToString(keys[1]), hex.EncodeToString([]byte{4}), err)
+//	}
+//
+//	if _, err := turboTrie.Commit(); err != nil {
+//		t.Errorf("turboTrie.Commit(db) = %v, want <nil>", err)
+//	}
+//
+//	ref.Update(keys[1], []byte{0xc5, 0x03})
+//
+//	hash, _ = ref.Commit(nil)
+//	refTrieDB.Commit(hash, false)
+//
+//	fmt.Println("")
+//	fmt.Println("VERSION 3")
+//	it3 := db.NewIterator()
+//	defer it3.Release()
+//	for it3.Next() {
+//		fmt.Println("key", hex.EncodeToString(it3.Prefix()), "value", hex.EncodeToString(it3.Value()))
+//	}
+//
+//	turboTrie.storage.Prune(turboTrie.version - 1)
+//
+//	fmt.Println("")
+//	fmt.Println("AFTER PRUNING")
+//	after := db.NewIterator()
+//	defer after.Release()
+//	for after.Next() {
+//		fmt.Println("key", hex.EncodeToString(after.Prefix()), "value", hex.EncodeToString(after.Value()))
+//	}
+//
+//	fmt.Println("")
+//	fmt.Println("REF")
+//	refIT := refDB.NewIterator()
+//	defer refIT.Release()
+//	for refIT.Next() {
+//		fmt.Println("key", hex.EncodeToString(refIT.Prefix()), "value", hex.EncodeToString(refIT.Value()))
+//	}
+//}
 
 func TestTrie2(t *testing.T) {
 	tests := []struct {
@@ -534,15 +531,15 @@ func TestTrie2(t *testing.T) {
 		entries := parseEntries(t, test.entries)
 
 		t.Run(test.name, func(t *testing.T) {
-			db := rawdb.NewMemoryDatabase()
-			trie2 := NewEmptyTurboTrie(db)
+			db := memorydb.New()
+			trie2 := NewEmptyLudicrousTrie(db, 0)
 
-			ref, _ := trie.New(common.Hash{}, trie.NewDatabase(rawdb.NewMemoryDatabase()))
+			ref, _ := trie.New(common.Hash{}, trie.NewDatabase(memorydb.New()))
 
 			// Initial insertion and integrity tests.
 			for i, e := range entries {
-				if err := trie2.Put(e.key, e.val); err != nil {
-					t.Errorf("trie.Put(%q, %q) = %s, want <nil>", hex.EncodeToString(e.key), hex.EncodeToString(e.val), err)
+				if err := trie2.Update(e.key, e.val); err != nil {
+					t.Errorf("trie.Update(%q, %q) = %s, want <nil>", hex.EncodeToString(e.key), hex.EncodeToString(e.val), err)
 				}
 				// TODO: Remove after testing.
 				ref.Update(e.key, e.val)
@@ -572,7 +569,7 @@ func TestTrie2(t *testing.T) {
 				}
 			}
 
-			if _,err := trie2.Commit(); err != nil {
+			if _, err := trie2.Commit(); err != nil {
 				t.Errorf("trie.Commit(db) = %v, want <nil>", err)
 			}
 
@@ -585,8 +582,8 @@ func TestTrie2(t *testing.T) {
 			// Replacement tests.
 			for _, e := range entries {
 				toggledVal := not(e.val)
-				if err := trie2.Put(e.key, toggledVal); err != nil {
-					t.Errorf("trie.Put(%q, %q) = %v, want <nil>", hex.EncodeToString(e.key), hex.EncodeToString(toggledVal), err)
+				if err := trie2.Update(e.key, toggledVal); err != nil {
+					t.Errorf("trie.Update(%q, %q) = %v, want <nil>", hex.EncodeToString(e.key), hex.EncodeToString(toggledVal), err)
 				}
 
 				if got, err := trie2.Get(e.key); !bytes.Equal(got, toggledVal) || err != nil {
@@ -601,8 +598,8 @@ func TestTrie2(t *testing.T) {
 
 			// Restore original values.
 			for _, e := range entries {
-				if err := trie2.Put(e.key, e.val); err != nil {
-					t.Errorf("trie.Put(%q, %q) = %v, want <nil>", hex.EncodeToString(e.key), hex.EncodeToString(e.val), err)
+				if err := trie2.Update(e.key, e.val); err != nil {
+					t.Errorf("trie.Update(%q, %q) = %v, want <nil>", hex.EncodeToString(e.key), hex.EncodeToString(e.val), err)
 				}
 			}
 
@@ -635,10 +632,10 @@ func TestTrie2(t *testing.T) {
 			}
 
 			// Load trie.
-			loadedTrie, err := NewTurboTrie(db, previousHash(entries, len(entries)), 0)
+			loadedTrie, err := NewLudicrousTrie(db, previousHash(entries, len(entries)), 0)
 			if err != nil {
-				NewTurboTrie(db, previousHash(entries, len(entries)), 0)
-				t.Fatalf("NewTurboTrie(db, 0) = <nil>, %v, want *TurboTrie, <nil>", err)
+				NewLudicrousTrie(db, previousHash(entries, len(entries)), 0)
+				t.Fatalf("NewTurboTrie(db, 0) = <nil>, %v, want *LudicrousTrie, <nil>", err)
 			}
 
 			for _, e := range entries {
@@ -647,17 +644,17 @@ func TestTrie2(t *testing.T) {
 				}
 			}
 
-			// Reload TurboTrie.
-			loadedTrie, err = NewTurboTrie(db, previousHash(entries, len(entries)), 0)
+			// Reload LudicrousTrie.
+			loadedTrie, err = NewLudicrousTrie(db, previousHash(entries, len(entries)), 0)
 			if err != nil {
-				t.Fatalf("NewTurboTrie(db, 0) = <nil>, %v, want *TurboTrie, <nil>", err)
+				t.Fatalf("NewTurboTrie(db, 0) = <nil>, %v, want *LudicrousTrie, <nil>", err)
 			}
 
 			// Replacement tests.
 			for _, e := range entries {
 				toggledVal := not(e.val)
-				if err := loadedTrie.Put(e.key, toggledVal); err != nil {
-					t.Errorf("trie.Put(%q, %q) = %v, want <nil>", hex.EncodeToString(e.key), hex.EncodeToString(toggledVal), err)
+				if err := loadedTrie.Update(e.key, toggledVal); err != nil {
+					t.Errorf("trie.Update(%q, %q) = %v, want <nil>", hex.EncodeToString(e.key), hex.EncodeToString(toggledVal), err)
 				}
 
 				if got, err := loadedTrie.Get(e.key); !bytes.Equal(got, toggledVal) || err != nil {
@@ -691,9 +688,9 @@ func TestTrie2(t *testing.T) {
 				fmt.Println("key2", storage.Key(it.Key()).String(), "value", hex.EncodeToString(it.Value()))
 			}
 
-			loadedTrie2, err := NewTurboTrie(db, v2Hash, 1)
+			loadedTrie2, err := NewLudicrousTrie(db, v2Hash, 1)
 			if err != nil {
-				t.Fatalf("NewTurboTrie(db, 0) = <nil>, %v, want *TurboTrie, <nil>", err)
+				t.Fatalf("NewTurboTrie(db, 0) = <nil>, %v, want *LudicrousTrie, <nil>", err)
 			}
 
 			for _, e := range entries {
@@ -705,10 +702,10 @@ func TestTrie2(t *testing.T) {
 
 			///////////
 
-			// Reload TurboTrie.
-			loadedTrie, err = NewTurboTrie(db, previousHash(entries, len(entries)), 0)
+			// Reload LudicrousTrie.
+			loadedTrie, err = NewLudicrousTrie(db, previousHash(entries, len(entries)), 0)
 			if err != nil {
-				t.Fatalf("NewTurboTrie(db, 0) = <nil>, %v, want *TurboTrie, <nil>", err)
+				t.Fatalf("NewTurboTrie(db, 0) = <nil>, %v, want *LudicrousTrie, <nil>", err)
 			}
 
 			// Load and re-read with multiple versions.
@@ -742,8 +739,8 @@ func TestTrie2(t *testing.T) {
 			// Replacement and commit tests.
 			for _, e := range entries {
 				toggledVal := not(e.val)
-				if err := loadedTrie.Put(e.key, toggledVal); err != nil {
-					t.Errorf("trie.Put(%q, %q) = %v, want <nil>", hex.EncodeToString(e.key), hex.EncodeToString(toggledVal), err)
+				if err := loadedTrie.Update(e.key, toggledVal); err != nil {
+					t.Errorf("trie.Update(%q, %q) = %v, want <nil>", hex.EncodeToString(e.key), hex.EncodeToString(toggledVal), err)
 				}
 
 				if got, err := loadedTrie.Get(e.key); !bytes.Equal(got, toggledVal) || err != nil {
@@ -829,109 +826,109 @@ type Account struct {
 	CodeHash []byte
 }
 
-func TestMainnetGenesis(t *testing.T) {
-	t.SkipNow()
-	db := rawdb.NewMemoryDatabase()
-	trie2 := NewEmptyTurboTrie(db)
-
-	refDB := rawdb.NewMemoryDatabase()
-	refTrieDB := trie.NewDatabase(refDB)
-	ref, _ := trie.New(common.Hash{}, refTrieDB)
-
-	genesis := core.DefaultGenesisBlock()
-	count := 0
-	var addresses []common.Address
-	var hashedAddresses [][]byte
-	var rlps [][]byte
-
-	var keys []string
-	for k := range genesis.Alloc {
-		keys = append(keys, k.String())
-	}
-	sort.Strings(keys)
-
-	for i := range keys {
-		address := common.HexToAddress(keys[i])
-		hashedAddress := crypto.Keccak256(address.Bytes())
-		alloc := genesis.Alloc[address]
-
-		account := &Account{
-			Nonce:   alloc.Nonce,
-			Balance: alloc.Balance,
-			Root:    common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),
-
-			CodeHash: crypto.Keccak256(nil),
-		}
-
-		rlp, err := rlp.EncodeToBytes(account)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		fmt.Println(i, "Address", strings.ToLower(address.String())[2:], "Hashed", hex.EncodeToString(hashedAddress), "RLP", hex.EncodeToString(rlp))
-
-		addresses = append(addresses, address)
-		hashedAddresses = append(hashedAddresses, hashedAddress)
-		rlps = append(rlps, rlp)
-
-		if i == 226 {
-			fmt.Println("here")
-		}
-
-		if err := trie2.Put(hashedAddress, rlp); err != nil {
-			t.Fatal(err)
-		}
-
-		if err := ref.TryUpdate(hashedAddress, rlp); err != nil {
-			t.Fatal(err)
-		}
-		//
-		//for i := range addresses {
-		//	got, err := trie2.Get(hashedAddresses[i])
-		//	if err != nil {
-		//		t.Fatal(i, err)
-		//	}
-		//
-		//	if !bytes.Equal(got, rlps[i]) {
-		//		t.Fatal(i, "Could not get")
-		//	}
-		//}
-		//
-		//gotHash, err := trie2.Hash()
-		//if err != nil {
-		//	t.Fatal(err)
-		//}
-		//
-		//wantHash := ref.Hash()
-		//
-		//if wantHash != gotHash {
-		//	hash, _ := ref.Commit(nil)
-		//	refTrieDB.Commit(hash, false)
-		//
-		//	if err := trie2.Commit(db, refDB); err != nil {
-		//		t.Errorf("Err %v", err)
-		//	}
-		//
-		//
-		//	t.Fatalf("%d: wrong mainnet genesis hash, got %s, want %s", count, wantHash.String(), gotHash.String())
-		//}
-
-		count++
-	}
-
-	hash, err := trie2.Hash()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	genesisStateRoot := core.DefaultGenesisBlock().ToBlock(nil).Root()
-
-	if hash != genesisStateRoot {
-		t.Errorf("TurboTrie: wrong mainnet genesis hash, got %s, want %s", hash.String(), genesisStateRoot.String())
-	}
-
-	if ref.Hash() != genesisStateRoot {
-		t.Errorf("Ref: wrong mainnet genesis hash, got %s, want %s", ref.Hash().String(), genesisStateRoot.String())
-	}
-
-}
+//func TestMainnetGenesis(t *testing.T) {
+//	t.SkipNow()
+//	db := rawdb.NewMemoryDatabase()
+//	trie2 := NewEmptyTurboTrie(db)
+//
+//	refDB := rawdb.NewMemoryDatabase()
+//	refTrieDB := trie.NewDatabase(refDB)
+//	ref, _ := trie.New(common.Hash{}, refTrieDB)
+//
+//	genesis := core.DefaultGenesisBlock()
+//	count := 0
+//	var addresses []common.Address
+//	var hashedAddresses [][]byte
+//	var rlps [][]byte
+//
+//	var keys []string
+//	for k := range genesis.Alloc {
+//		keys = append(keys, k.String())
+//	}
+//	sort.Strings(keys)
+//
+//	for i := range keys {
+//		address := common.HexToAddress(keys[i])
+//		hashedAddress := crypto.Keccak256(address.Bytes())
+//		alloc := genesis.Alloc[address]
+//
+//		account := &Account{
+//			Nonce:   alloc.Nonce,
+//			Balance: alloc.Balance,
+//			Root:    common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),
+//
+//			CodeHash: crypto.Keccak256(nil),
+//		}
+//
+//		rlp, err := rlp.EncodeToBytes(account)
+//		if err != nil {
+//			t.Fatal(err)
+//		}
+//
+//		fmt.Println(i, "Address", strings.ToLower(address.String())[2:], "Hashed", hex.EncodeToString(hashedAddress), "RLP", hex.EncodeToString(rlp))
+//
+//		addresses = append(addresses, address)
+//		hashedAddresses = append(hashedAddresses, hashedAddress)
+//		rlps = append(rlps, rlp)
+//
+//		if i == 226 {
+//			fmt.Println("here")
+//		}
+//
+//		if err := trie2.Update(hashedAddress, rlp); err != nil {
+//			t.Fatal(err)
+//		}
+//
+//		if err := ref.TryUpdate(hashedAddress, rlp); err != nil {
+//			t.Fatal(err)
+//		}
+//		//
+//		//for i := range addresses {
+//		//	got, err := trie2.Get(hashedAddresses[i])
+//		//	if err != nil {
+//		//		t.Fatal(i, err)
+//		//	}
+//		//
+//		//	if !bytes.Equal(got, rlps[i]) {
+//		//		t.Fatal(i, "Could not get")
+//		//	}
+//		//}
+//		//
+//		//gotHash, err := trie2.Hash()
+//		//if err != nil {
+//		//	t.Fatal(err)
+//		//}
+//		//
+//		//wantHash := ref.Hash()
+//		//
+//		//if wantHash != gotHash {
+//		//	hash, _ := ref.Commit(nil)
+//		//	refTrieDB.Commit(hash, false)
+//		//
+//		//	if err := trie2.Commit(db, refDB); err != nil {
+//		//		t.Errorf("Err %v", err)
+//		//	}
+//		//
+//		//
+//		//	t.Fatalf("%d: wrong mainnet genesis hash, got %s, want %s", count, wantHash.String(), gotHash.String())
+//		//}
+//
+//		count++
+//	}
+//
+//	hash, err := trie2.Hash()
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//
+//	genesisStateRoot := core.DefaultGenesisBlock().ToBlock(nil).Root()
+//
+//	if hash != genesisStateRoot {
+//		t.Errorf("LudicrousTrie: wrong mainnet genesis hash, got %s, want %s", hash.String(), genesisStateRoot.String())
+//	}
+//
+//	if ref.Hash() != genesisStateRoot {
+//		t.Errorf("Ref: wrong mainnet genesis hash, got %s, want %s", ref.Hash().String(), genesisStateRoot.String())
+//	}
+//
+//}

@@ -42,7 +42,7 @@ import (
 type GlobalStore struct {
 	db *leveldb.DB
 	// protects nodes and keys indexes
-	// in Put and Delete methods
+	// in Update and Delete methods
 	nodesLocks sync.Map
 	keysLocks  sync.Map
 }
@@ -86,7 +86,7 @@ func (s *GlobalStore) Get(addr common.Address, key []byte) (data []byte, err err
 	return
 }
 
-// Put saves the chunk data for node with address addr.
+// Update saves the chunk data for node with address addr.
 func (s *GlobalStore) Put(addr common.Address, key []byte, data []byte) error {
 	unlock, err := s.lock(addr, key)
 	if err != nil {
@@ -386,7 +386,7 @@ var (
 	errLockTimeout = errors.New("lock timeout")
 )
 
-// lock protects parallel writes in Put and Delete methods for both
+// lock protects parallel writes in Update and Delete methods for both
 // node with provided address and for data with provided key.
 func (s *GlobalStore) lock(addr common.Address, key []byte) (unlock func(), err error) {
 	start := time.Now()

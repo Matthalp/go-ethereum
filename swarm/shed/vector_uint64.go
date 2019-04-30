@@ -56,7 +56,7 @@ func (f Uint64Vector) Get(i uint64) (val uint64, err error) {
 	return binary.BigEndian.Uint64(b), nil
 }
 
-// Put encodes uin64 value and stores it in the database.
+// Update encodes uin64 value and stores it in the database.
 func (f Uint64Vector) Put(i, val uint64) (err error) {
 	return f.db.Put(f.indexKey(i), encodeUint64(val))
 }

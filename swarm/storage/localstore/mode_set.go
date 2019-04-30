@@ -81,7 +81,7 @@ func (db *DB) set(mode ModeSet, addr chunk.Address) (err error) {
 
 		// need to get access timestamp here as it is not
 		// provided by the access function, and it is not
-		// a property of a chunk provided to Accessor.Put.
+		// a property of a chunk provided to Accessor.Update.
 
 		i, err := db.retrievalDataIndex.Get(item)
 		switch err {
@@ -117,7 +117,7 @@ func (db *DB) set(mode ModeSet, addr chunk.Address) (err error) {
 
 		// need to get access timestamp here as it is not
 		// provided by the access function, and it is not
-		// a property of a chunk provided to Accessor.Put.
+		// a property of a chunk provided to Accessor.Update.
 		i, err := db.retrievalDataIndex.Get(item)
 		if err != nil {
 			if err == leveldb.ErrNotFound {
@@ -154,7 +154,7 @@ func (db *DB) set(mode ModeSet, addr chunk.Address) (err error) {
 
 		// need to get access timestamp here as it is not
 		// provided by the access function, and it is not
-		// a property of a chunk provided to Accessor.Put.
+		// a property of a chunk provided to Accessor.Update.
 
 		i, err := db.retrievalAccessIndex.Get(item)
 		switch err {

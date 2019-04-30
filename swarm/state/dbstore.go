@@ -85,7 +85,7 @@ func (s *DBStore) Get(key string, i interface{}) (err error) {
 	return unmarshaler.UnmarshalBinary(data)
 }
 
-// Put stores an object that implements Binary for a specific key.
+// Update stores an object that implements Binary for a specific key.
 func (s *DBStore) Put(key string, i interface{}) (err error) {
 	var bytes []byte
 	if marshaler, ok := i.(encoding.BinaryMarshaler); ok {

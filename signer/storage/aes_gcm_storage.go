@@ -53,7 +53,7 @@ func NewAESEncryptedStorage(filename string, key []byte) *AESEncryptedStorage {
 	}
 }
 
-// Put stores a value by key. 0-length keys results in no-op
+// Update stores a value by key. 0-length keys results in no-op
 func (s *AESEncryptedStorage) Put(key, value string) {
 	if len(key) == 0 {
 		return

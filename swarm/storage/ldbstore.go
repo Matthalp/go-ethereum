@@ -773,7 +773,7 @@ func (s *LDBStore) BinIndex(po uint8) uint64 {
 	return s.bucketCnt[po]
 }
 
-// Put adds a chunk to the database, adding indices and incrementing global counters.
+// Update adds a chunk to the database, adding indices and incrementing global counters.
 // If it already exists, it merely increments the access count of the existing entry.
 // Is thread safe
 func (s *LDBStore) Put(ctx context.Context, chunk Chunk) error {

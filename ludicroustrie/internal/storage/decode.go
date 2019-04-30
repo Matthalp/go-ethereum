@@ -4,24 +4,24 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"github.com/ethereum/go-ethereum/ludicroustrie/internal/encoding"
+	"github.com/ethereum/go-ethereum/ludicroustrie/internal/versionnode"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/ethereum/go-ethereum/turbotrie/internal/encoding"
-	"github.com/ethereum/go-ethereum/turbotrie/internal/node"
 )
 
 // TODO: Make constants for cases.
-func decodeNode(b []byte, version uint32) (node.VersionedNode, []byte, error) {
+func decodeNode(b []byte, version uint32) (versionnode.Node, []byte, error) {
 	kind, enc, remaining, err := rlp.Split(b)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error decoding version: %v", err)
+		return nil, nil, err
 	}
 
 	if kind == rlp.String && len(enc) == 0 {
-		return node.NewNil(), remaining, nil
+		return versionnode.NewNil(), remaining, nil
 	}
 
 	if kind == rlp.String {
-		return node.Hash(enc), remaining, nil
+		return versionnode.Hash(enc), remaining, nil
 	}
 
 	numElems, err := rlp.CountValues(enc)
@@ -52,20 +52,49 @@ func decodeNode(b []byte, version uint32) (node.VersionedNode, []byte, error) {
 
 		return legacyFullNode, remaining, err
 	default:
-		_, enc, remaining, _ := rlp.Split(enc)
-		fmt.Println("enc[0]", hex.EncodeToString(enc))
-		_, enc, remaining, _ = rlp.Split(remaining)
-		fmt.Println("enc[1]", hex.EncodeToString(enc))
-		_, enc, remaining, _ = rlp.Split(remaining)
-		fmt.Println("enc[2]", hex.EncodeToString(enc))
-		fmt.Println("enc[3]", hex.EncodeToString(remaining))
-
-
 		return nil, nil, fmt.Errorf("Could not decode node %s", hex.EncodeToString(b))
 	}
 }
 
-func decodeShortNode(b []byte, version uint32) (node.VersionedNode, error) {
+func decodeVersionedNodeWithPrefix(b []byte, version uint32) (versionnode.Live, error) {
+	enc, _, err := rlp.SplitList(b)
+	if err != nil {
+		return nil, err
+	}
+
+	numElems, err := rlp.CountValues(enc)
+	if err != nil {
+		return nil, err
+	}
+
+	switch numElems {
+	case 2:
+		shortNode, err := decodeShortNode(enc, version)
+		if err != nil {
+			return nil, err
+		}
+
+		return shortNode, err
+	case 5:
+		fullNode, err := decodeFullNode(enc, version)
+		if err != nil {
+			return nil, err
+		}
+
+		return fullNode, err
+	case 17:
+		legacyFullNode, err := decodeLegacyFullNode(nil, enc, version)
+		if err != nil {
+			return nil, err
+		}
+
+		return legacyFullNode, err
+	default:
+		return nil, fmt.Errorf("Could not decode node %s", hex.EncodeToString(b))
+	}
+}
+
+func decodeShortNode(b []byte, version uint32) (versionnode.Live, error) {
 	key, remaining, err := decodeKey(b)
 	if err != nil {
 		return nil, err
@@ -83,19 +112,19 @@ func decodeShortNode(b []byte, version uint32) (node.VersionedNode, error) {
 	return decodeLegacyFullNode(key.Hex(), enc, version)
 }
 
-func decodeLeafNode(key encoding.Hex, b []byte, version uint32) (*node.Leaf, error) {
+func decodeLeafNode(key encoding.Hex, b []byte, version uint32) (*versionnode.Leaf, error) {
 	value, _, err := decodeValue(b)
 	if err != nil {
 		return nil, err
 	}
 
-	return node.NewLeaf(key, value, version), nil
+	return versionnode.NewLeaf(key, value, version), nil
 }
 
-func decodeLegacyFullNode(key encoding.Hex, enc []byte, version uint32) (*node.Full, error) {
-	var children node.Children
+func decodeLegacyFullNode(key encoding.Hex, enc []byte, version uint32) (*versionnode.Full, error) {
+	var children versionnode.Children
 	// Skip last child because it's not set.
-	for i := 0; i < node.NumChildren; i++ {
+	for i := 0; i < versionnode.NumChildren; i++ {
 		kind, childEnc, encRemaining, err := rlp.Split(enc)
 		if err != nil {
 			return nil, err
@@ -103,7 +132,7 @@ func decodeLegacyFullNode(key encoding.Hex, enc []byte, version uint32) (*node.F
 		enc = encRemaining
 
 		if kind == rlp.String && len(childEnc) == 0 {
-			children[i] = node.NewNil()
+			children[i] = versionnode.NewNil()
 			continue
 		}
 
@@ -132,7 +161,7 @@ func decodeLegacyFullNode(key encoding.Hex, enc []byte, version uint32) (*node.F
 		}
 	}
 
-	return node.NewFull(key, children, version), nil
+	return versionnode.NewFull(key, children, version), nil
 }
 
 func decodeKey(b []byte) (encoding.Compact, []byte, error) {
@@ -148,7 +177,7 @@ func decodeValue(b []byte) ([]byte, []byte, error) {
 	return rlp.SplitString(b)
 }
 
-func decodeFullNode(b []byte, version uint32) (*node.Full, error) {
+func decodeFullNode(b []byte, version uint32) (*versionnode.Full, error) {
 	key, remaining, err := decodeKey(b)
 	if err != nil {
 		return nil, err
@@ -174,7 +203,7 @@ func decodeFullNode(b []byte, version uint32) (*node.Full, error) {
 		return nil, err
 	}
 
-	return node.NewFull(key.Hex(), children, version), nil
+	return versionnode.NewFull(key.Hex(), children, version), nil
 }
 
 func decodeVersions(b []byte) ([]uint32, []byte, error) {
@@ -215,20 +244,23 @@ func decodeVersion(b []byte) (uint32, []byte, error) {
 		return uint32(enc[0]), remaining, nil
 	}
 
-	return binary.BigEndian.Uint32(enc), remaining, nil
+	// TODO: Clean this up.
+	s := make([]byte, 4)
+	copy(s[len(s) - len(enc):], enc)
+	return binary.BigEndian.Uint32(s), remaining, nil
 }
 
-func decodeChildren(b []byte, livingChildrenMask ChildrenMask, leafChildrenMask ChildrenMask, versions []uint32) (node.Children, error) {
-	var children node.Children
+func decodeChildren(b []byte, livingChildrenMask ChildrenMask, leafChildrenMask ChildrenMask, versions []uint32) (versionnode.Children, error) {
+	var children versionnode.Children
 
 	enc, _, err := rlp.SplitList(b)
 	if err != nil {
 		return children, nil
 	}
 
-	for i := 0; i < node.NumChildren; i++ {
+	for i := 0; i < versionnode.NumChildren; i++ {
 		if !livingChildrenMask.Test(i) {
-			children[i] = node.NewNil()
+			children[i] = versionnode.NewNil()
 			continue
 		}
 
@@ -240,9 +272,9 @@ func decodeChildren(b []byte, livingChildrenMask ChildrenMask, leafChildrenMask 
 		}
 		enc = encRemaining
 
-		if hash, isHashNode := child.(node.Hash); isHashNode {
+		if hash, isHashNode := child.(versionnode.Hash); isHashNode {
 			isLeaf := leafChildrenMask.Test(i)
-			children[i] = node.NewStored(hash.Hash(), isLeaf, version)
+			children[i] = versionnode.NewStored(hash.Hash(), isLeaf, version)
 		} else {
 			children[i] = child
 		}

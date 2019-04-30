@@ -405,7 +405,7 @@ func testSwarmNetwork(t *testing.T, o *testSwarmNetworkOptions, steps ...testSwa
 }
 
 // uploadFile, uploads a short file to the swarm instance
-// using the api.Put method.
+// using the api.Update method.
 func uploadFile(swarm *Swarm) (storage.Address, string, error) {
 	b := make([]byte, 8)
 	_, err := rand.Read(b)

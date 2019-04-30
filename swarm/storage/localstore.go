@@ -47,7 +47,7 @@ func (p *LocalStoreParams) Init(path string) {
 }
 
 // LocalStore is a combination of inmemory db over a disk persisted db
-// implements a Get/Put with fallback (caching) logic using any 2 ChunkStores
+// implements a Get/Update with fallback (caching) logic using any 2 ChunkStores
 type LocalStore struct {
 	Validators []ChunkValidator
 	memStore   *MemStore
@@ -99,7 +99,7 @@ func (ls *LocalStore) isValid(chunk Chunk) bool {
 	return valid
 }
 
-// Put is responsible for doing validation and storage of the chunk
+// Update is responsible for doing validation and storage of the chunk
 // by using configured ChunkValidators, MemStore and LDBStore.
 // If the chunk is not valid, its GetErrored function will
 // return ErrChunkInvalid.
@@ -109,7 +109,7 @@ func (ls *LocalStore) isValid(chunk Chunk) bool {
 // on the chunk.
 // This method is responsible for closing Chunk.ReqC channel
 // when the chunk is stored in memstore.
-// After the LDBStore.Put, it is ensured that the MemStore
+// After the LDBStore.Update, it is ensured that the MemStore
 // contains the chunk with the same data, but nil ReqC channel.
 func (ls *LocalStore) Put(ctx context.Context, chunk Chunk) error {
 	if !ls.isValid(chunk) {

@@ -614,7 +614,7 @@ func (srv *Server) run(dialstate dialer) {
 		runningTasks []task
 		queuedTasks  []task // tasks that can't run yet
 	)
-	// Put trusted nodes into a map to speed up checks.
+	// Update trusted nodes into a map to speed up checks.
 	// Trusted peers are loaded on startup or added via AddTrustedPeer RPC.
 	for _, n := range srv.TrustedNodes {
 		trusted[n.ID()] = true

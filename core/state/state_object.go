@@ -19,6 +19,7 @@ package state
 import (
 	"bytes"
 	"fmt"
+	"github.com/ethereum/go-ethereum/log"
 	"io"
 	"math/big"
 	"time"
@@ -153,8 +154,10 @@ func (c *stateObject) touch() {
 func (c *stateObject) getTrie(db Database) Trie {
 	if c.trie == nil {
 		var err error
-		c.trie, err = db.OpenStorageTrie(c.addrHash, c.data.Root, c.version)
+		c.trie, err = db.OpenStorageTrie(c.addrHash, c.data.Root, c.db.version)
 		if err != nil {
+		log.Info("GetTrie", "address", c.address.String(), "addrHash", c.addrHash.String())
+			log.Info("getTrie", "error", err)
 			c.trie, _ = db.OpenStorageTrie(c.addrHash, common.Hash{}, c.version)
 			c.setError(fmt.Errorf("can't create storage trie: %v", err))
 		}
@@ -239,13 +242,20 @@ func (self *stateObject) updateTrie(db Database) Trie {
 		self.originStorage[key] = value
 
 		if (value == common.Hash{}) {
+			//fmt.Println("DELETE", "ADDRESS", self.Address().String(), "KEY", key.String())
+			//log.Info("Deleting", "address", self.address.String(), "key", key.String())
 			self.setError(tr.TryDelete(key[:]))
 			continue
 		}
+		//fmt.Println("UPDATE", "ADDRESS", self.Address().String(), "KEY", key.String(), "VALUE", value.String())
 		// Encoding []byte cannot fail, ok to ignore the error.
+		//log.Info("Updating", "address", self.address.String(), "key", key.String(), "value", value.String())
 		v, _ := rlp.EncodeToBytes(bytes.TrimLeft(value[:], "\x00"))
 		self.setError(tr.TryUpdate(key[:], v))
 	}
+	//if self.dbErr != nil {
+	//	fmt.Println("ERROR", self.dbErr)
+	//}
 	return tr
 }
 
@@ -257,6 +267,7 @@ func (self *stateObject) updateRoot(db Database) {
 	if metrics.EnabledExpensive {
 		defer func(start time.Time) { self.db.StorageHashes += time.Since(start) }(time.Now())
 	}
+	//log.Info("Setting root", "address", self.address.String())
 	self.data.Root = self.trie.Hash()
 }
 

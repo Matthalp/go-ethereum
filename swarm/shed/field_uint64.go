@@ -56,7 +56,7 @@ func (f Uint64Field) Get() (val uint64, err error) {
 	return binary.BigEndian.Uint64(b), nil
 }
 
-// Put encodes uin64 value and stores it in the database.
+// Update encodes uin64 value and stores it in the database.
 func (f Uint64Field) Put(val uint64) (err error) {
 	return f.db.Put(f.key, encodeUint64(val))
 }

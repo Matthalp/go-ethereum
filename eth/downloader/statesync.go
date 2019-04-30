@@ -435,7 +435,7 @@ func (s *stateSync) process(req *stateReq) (int, error) {
 			delete(req.tasks, hash)
 		}
 	}
-	// Put unfulfilled tasks back into the retry queue
+	// Update unfulfilled tasks back into the retry queue
 	npeers := s.d.peers.Len()
 	for hash, task := range req.tasks {
 		// If the node did deliver something, missing items may be due to a protocol

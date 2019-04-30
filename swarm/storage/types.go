@@ -162,7 +162,7 @@ type Putter interface {
 	Put(context.Context, ChunkData) (Reference, error)
 	// RefSize returns the length of the Reference created by this Putter
 	RefSize() int64
-	// Close is to indicate that no more chunk data will be Put on this Putter
+	// Close is to indicate that no more chunk data will be Update on this Putter
 	Close()
 	// Wait returns if all data has been store and the Close() was called.
 	Wait(context.Context) error
@@ -232,7 +232,7 @@ type SyncChunkStore interface {
 type FakeChunkStore struct {
 }
 
-// Put doesn't store anything it is just here to implement ChunkStore
+// Update doesn't store anything it is just here to implement ChunkStore
 func (f *FakeChunkStore) Put(_ context.Context, ch Chunk) error {
 	return nil
 }
